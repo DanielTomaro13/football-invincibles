@@ -128,6 +128,9 @@ writeFileSync(
   })
 );
 
+// tiny standalone strengths file for the simulator (fast to load)
+writeFileSync(join(__dirname, "..", "public", "data", "strengths.json"), JSON.stringify({ strengths }));
+
 // quick calibration report
 const top = (pos) =>
   players.filter((p) => p.pos === pos).sort((a, b) => b.rating - a.rating);

@@ -3,6 +3,7 @@ export const dynamic = "force-static";
 import type { MetadataRoute } from "next";
 import { SITE } from "@/lib/seo";
 import { COMPETITIONS } from "@/lib/competitions";
+import { allPlayers } from "@/lib/local";
 
 const GAMES = [
   "invincibles",
@@ -47,5 +48,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.6,
   }));
 
-  return [...staticPaths, ...gamePaths, ...compPaths];
+  // every player profile — big internal-linking / long-tail SEO win
+  const playerPaths = allPlayers().map((p) => ({
+    url: `${SITE.url}/players/${p.id}/${p.slug}`,
+    lastModified: now,
+    changeFrequency: "weekly" as const,
+    priority: 0.5,
+  }));
+
+  return [...staticPaths, ...gamePaths, ...compPaths, ...playerPaths];
 }

@@ -19,12 +19,14 @@ export default function LeaderboardView() {
   const [name, setName] = useState("");
   const [saved, setSaved] = useState(false);
   const [boards, setBoards] = useState<Record<string, ScoreEntry[]>>({});
+  const [wall, setWall] = useState<ScoreEntry[]>([]);
   const [bests, setBests] = useState<Record<string, number>>({});
   const [streaks, setStreaks] = useState<Record<string, { cur: number; max: number }>>({});
   const global = isGlobal();
 
   useEffect(() => {
     setName(getName());
+    topScores("undefeated", true, 25).then(setWall);
     Promise.all(BOARDS.map((b) => topScores(b.game, true, 10))).then((res) => {
       const m: Record<string, ScoreEntry[]> = {};
       BOARDS.forEach((b, i) => (m[b.game] = res[i]));
@@ -71,6 +73,38 @@ export default function LeaderboardView() {
           <code>NEXT_PUBLIC_LEADERBOARD_URL</code> (see <code>/worker</code>) to go global.
         </p>
       )}
+
+      {/* The Invincibles Wall — unbeaten seasons */}
+      <section>
+        <h2 style={{ fontSize: "1.4rem", fontWeight: 900, marginBottom: 4 }}>🛡️ The Invincibles Wall</h2>
+        <p style={{ color: "var(--muted)", fontSize: ".88rem", margin: "0 0 10px" }}>
+          Managers who built a side that went a whole season <strong>unbeaten</strong> — no losses. Ranked by points,
+          so the closer to a perfect, all-win campaign, the higher you climb. ⭐ marks a flawless 38-win season.
+        </p>
+        <div className="card" style={{ padding: "1rem", borderColor: "var(--gold)" }}>
+          {wall.length === 0 ? (
+            <p style={{ color: "var(--muted)", margin: 0 }}>
+              No one&apos;s gone unbeaten yet. Build a title-class XI in the{" "}
+              <a href="/games/invincibles" style={{ color: "var(--accent)" }}>Invincibles</a> game and etch your name here.
+            </p>
+          ) : (
+            <ol style={{ listStyle: "none", margin: 0, padding: 0, display: "grid", gap: 4 }}>
+              {wall.map((e, i) => (
+                <li key={i} style={{ display: "flex", gap: 10, alignItems: "center", padding: "6px 4px", borderBottom: i < wall.length - 1 ? "1px solid var(--border)" : "none" }}>
+                  <span style={{ width: 26, fontWeight: 900, color: i === 0 ? "var(--gold)" : "var(--muted)", textAlign: "center" }}>
+                    {i === 0 ? "👑" : i + 1}
+                  </span>
+                  <span style={{ flex: 1, fontWeight: 700 }}>
+                    {e.name} {e.score >= 114 && <span title="Perfect season">⭐</span>}
+                  </span>
+                  <span style={{ color: "var(--muted)", fontSize: ".82rem" }}>{Math.round(e.score / 3)}W</span>
+                  <strong style={{ color: "var(--gold)", minWidth: 48, textAlign: "right" }}>{e.score} pts</strong>
+                </li>
+              ))}
+            </ol>
+          )}
+        </div>
+      </section>
 
       {/* daily streaks */}
       <section>
