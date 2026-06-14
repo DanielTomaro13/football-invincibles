@@ -12,7 +12,7 @@
  *
  * Re-runnable; rate-limit aware (SDP allows 300 req / 60s).
  */
-import { writeFileSync, mkdirSync, readFileSync } from "node:fs";
+import { writeFileSync, mkdirSync, readFileSync, rmSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
@@ -130,8 +130,13 @@ async function buildSeason(year) {
     if (!byPos.has(p.pos)) byPos.set(p.pos, []);
     byPos.get(p.pos).push(p);
   }
-  for (const [, list] of byPos) {
+  for (const [posKey, list] of byPos) {
     const sorted = list.map((p) => p._c).sort((a, b) => a - b);
+    // Attackers (FWD/MID) are ranked by goals & assists, which genuinely
+    // separate quality, so they can reach the high 90s. Defenders & keepers
+    // have no quality signal in this data (just minutes/clean sheets), so a
+    // full-season regular shouldn't auto-rate 90+ — compress their scale.
+    const isBack = posKey === "Defender" || posKey === "Goalkeeper";
     for (const p of list) {
       let lo = 0,
         hi = sorted.length;
@@ -141,7 +146,16 @@ async function buildSeason(year) {
         else hi = m;
       }
       const pct = sorted.length ? lo / sorted.length : 0.5;
-      p.rating = Math.round((62 + pct * 35) * 10) / 10;
+      const raw = isBack
+        ? 44 + Math.pow(pct, 1.7) * 46 // backs: ~44–90
+        : 45 + Math.pow(pct, 1.5) * 53; // attackers: ~45–98
+      // reliability: a player who barely featured shouldn't be rated like a
+      // regular — pull low-minutes players down toward a squad-filler anchor.
+      // ~half a season (20 apps) earns full credit.
+      const reliability = Math.min(1, (p.apps || 0) / 20);
+      const anchor = 50;
+      const rating = anchor + (raw - anchor) * (0.35 + 0.65 * reliability);
+      p.rating = Math.round(Math.max(42, Math.min(99, rating)) * 10) / 10;
     }
   }
   // trim internal fields, sort each roster by rating
@@ -169,6 +183,15 @@ async function main() {
       const data = await buildSeason(year);
       if (!data) {
         console.log(`  ${seasonLabel(year)}: no data, skipping`);
+        continue;
+      }
+      // exclude seasons that haven't actually been played — with no games,
+      // every player has identical (placeholder) stats and ratings.
+      const played = Object.values(data.rosters).some((r) => r.some((p) => p.apps > 0));
+      if (!played) {
+        console.log(`  ${data.label}: no games played yet — excluded`);
+        byYear.delete(String(year));
+        rmSync(join(SEAS_DIR, `${year}.json`), { force: true });
         continue;
       }
       writeFileSync(join(SEAS_DIR, `${year}.json`), JSON.stringify({ rosters: data.rosters }));
