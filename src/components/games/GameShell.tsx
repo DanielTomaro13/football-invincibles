@@ -1,6 +1,8 @@
 import Link from "next/link";
 import JsonLd from "@/components/JsonLd";
+import AdUnit from "@/components/AdUnit";
 import { SITE } from "@/lib/seo";
+import { AD_SLOTS } from "@/lib/ads";
 
 /**
  * Server wrapper giving every game a consistent, SEO-friendly frame:
@@ -48,6 +50,9 @@ export default function GameShell({
       </header>
 
       {children}
+
+      {/* contextual ad — sits after the game, never inside gameplay */}
+      <AdUnit slot={AD_SLOTS.game} />
 
       <section className="card" style={{ padding: "1.25rem" }}>
         <h2 style={{ fontSize: "1.1rem", fontWeight: 800, marginTop: 0 }}>How to play</h2>

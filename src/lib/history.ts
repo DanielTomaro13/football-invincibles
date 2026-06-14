@@ -36,16 +36,19 @@ export interface HistoryIndex {
 let indexCache: HistoryIndex | null = null;
 const seasonCache = new Map<string, Record<string, HistPlayer[]>>();
 
+// Bump when the dataset/calibration changes so cached files are re-fetched.
+const DATA_VERSION = "2";
+
 export async function loadHistoryIndex(): Promise<HistoryIndex> {
   if (indexCache) return indexCache;
-  const r = await fetch("/data/history-index.json", { cache: "force-cache" });
+  const r = await fetch(`/data/history-index.json?v=${DATA_VERSION}`, { cache: "force-cache" });
   indexCache = await r.json();
   return indexCache!;
 }
 
 export async function loadSeasonRosters(year: string): Promise<Record<string, HistPlayer[]>> {
   if (seasonCache.has(year)) return seasonCache.get(year)!;
-  const r = await fetch(`/data/seasons/${year}.json`, { cache: "force-cache" });
+  const r = await fetch(`/data/seasons/${year}.json?v=${DATA_VERSION}`, { cache: "force-cache" });
   const j = await r.json();
   seasonCache.set(year, j.rosters);
   return j.rosters;
@@ -54,7 +57,7 @@ export async function loadSeasonRosters(year: string): Promise<Record<string, Hi
 let strengthsCache: { teamId: string; name: string; strength: number }[] | null = null;
 export async function loadStrengths() {
   if (strengthsCache) return strengthsCache;
-  const r = await fetch("/data/strengths.json", { cache: "force-cache" });
+  const r = await fetch(`/data/strengths.json?v=${DATA_VERSION}`, { cache: "force-cache" });
   strengthsCache = (await r.json()).strengths;
   return strengthsCache!;
 }

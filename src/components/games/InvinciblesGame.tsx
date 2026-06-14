@@ -195,6 +195,19 @@ export default function InvinciblesGame() {
     if (!next.every((s) => s.player)) spin(); // free fresh spin for the next pick
   };
 
+  // Tap-to-add: drop the player straight into their natural position with no
+  // prompt. Only open the picker when that's full and they'd have to play out
+  // of position / on the bench (i.e. there's an actual choice to make).
+  const placeSmart = (p: HistPlayer) => {
+    if (seen.has(p.id)) return;
+    const opts = openSlotsFor(p);
+    if (!opts.length) return;
+    const nat = natOf(p);
+    if (opts.includes(nat)) place(p, nat);
+    else if (opts.length === 1) place(p, opts[0]);
+    else setViewing({ p, source: "roster" });
+  };
+
   const removeAt = (idx: number) => {
     const p = squad[idx].player;
     if (p) setSeen((s) => { const n = new Set(s); n.delete(p.id); return n; });
@@ -315,18 +328,22 @@ export default function InvinciblesGame() {
                 </span>
               </div>
 
+              <p style={{ margin: "0 0 -2px", fontSize: ".72rem", color: "var(--muted)" }}>Tap a player to add them to their position · ⓘ for stats &amp; other slots</p>
               <div style={{ display: "grid", gap: 6, gridTemplateColumns: "repeat(auto-fill,minmax(155px,1fr))", maxHeight: 270, overflowY: "auto", WebkitOverflowScrolling: "touch", overscrollBehavior: "contain", opacity: spinning ? 0.4 : 1, transition: "opacity .2s" }}>
                 {filtered.map((p) => {
                   const usable = !seen.has(p.id) && openSlotsFor(p).length > 0;
                   const versatile = eligOf(p).length > 1;
                   return (
-                    <button key={p.id} onClick={() => setViewing({ p, source: "roster" })} disabled={!usable || spinning} className="card" style={{ padding: ".45rem .55rem", display: "flex", gap: 8, alignItems: "center", cursor: usable ? "pointer" : "not-allowed", opacity: usable ? 1 : 0.4, textAlign: "left", color: "var(--text)" }}>
-                      <span style={{ fontWeight: 900, color: "var(--accent)", minWidth: 26 }}>{p.rating.toFixed(0)}</span>
-                      <span style={{ minWidth: 0 }}>
-                        <span style={{ fontWeight: 700, display: "block", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontSize: ".82rem" }}>{p.name} {versatile && <span title="Versatile" style={{ color: "var(--gold)" }}>★</span>}</span>
-                        <span style={{ color: "var(--muted)", fontSize: ".7rem" }}>{natOf(p)} · {p.g}G {p.a}A{mode === "cap" ? ` · £${salaryOf(p.rating)}m` : ""}</span>
-                      </span>
-                    </button>
+                    <div key={p.id} className="card" style={{ padding: ".45rem .5rem", display: "flex", gap: 6, alignItems: "center", opacity: usable ? 1 : 0.4 }}>
+                      <button onClick={() => placeSmart(p)} disabled={!usable || spinning} style={{ flex: 1, minWidth: 0, display: "flex", gap: 8, alignItems: "center", background: "transparent", border: "none", padding: 0, color: "var(--text)", cursor: usable ? "pointer" : "not-allowed", textAlign: "left" }}>
+                        <span style={{ fontWeight: 900, color: "var(--accent)", minWidth: 26 }}>{p.rating.toFixed(0)}</span>
+                        <span style={{ minWidth: 0 }}>
+                          <span style={{ fontWeight: 700, display: "block", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontSize: ".82rem" }}>{p.name} {versatile && <span title="Versatile" style={{ color: "var(--gold)" }}>★</span>}</span>
+                          <span style={{ color: "var(--muted)", fontSize: ".7rem" }}>{natOf(p)} · {p.g}G {p.a}A{mode === "cap" ? ` · £${salaryOf(p.rating)}m` : ""}</span>
+                        </span>
+                      </button>
+                      <button onClick={() => setViewing({ p, source: "roster" })} disabled={spinning} title="Stats & position options" aria-label="View stats" style={{ background: "transparent", border: "none", color: "var(--muted)", cursor: "pointer", fontSize: "1.05rem", padding: "0 .15rem", lineHeight: 1 }}>ⓘ</button>
+                    </div>
                   );
                 })}
                 {!spinning && filtered.length === 0 && <p style={{ color: "var(--muted)", gridColumn: "1/-1" }}>No {filter} players here — try a filter or re-spin.</p>}

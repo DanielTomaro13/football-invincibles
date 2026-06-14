@@ -5,7 +5,9 @@ import SisterSites from "@/components/SisterSites";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
 import JsonLd from "@/components/JsonLd";
+import AdUnit from "@/components/AdUnit";
 import { SITE } from "@/lib/seo";
+import { AD_CLIENT, AD_SLOTS } from "@/lib/ads";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE.url),
@@ -91,7 +93,18 @@ export default function RootLayout({
         <main className="container-x" style={{ paddingTop: "1.5rem", minHeight: "70dvh" }}>
           {children}
         </main>
+        <div className="container-x">
+          <AdUnit slot={AD_SLOTS.inline} />
+        </div>
         <SiteFooter />
+        {/* Google AdSense loader (enables Auto Ads + manual units) */}
+        <Script
+          id="adsbygoogle-init"
+          async
+          src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${AD_CLIENT}`}
+          crossOrigin="anonymous"
+          strategy="afterInteractive"
+        />
         {/* Cloudflare Web Analytics */}
         <Script
           src="https://static.cloudflareinsights.com/beacon.min.js"
