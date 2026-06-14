@@ -2,10 +2,10 @@ import type { Metadata } from "next";
 
 export const SITE = {
   name: "Football Invincibles",
-  domain: "football-invincibles.com",
+  domain: "footballinvincibles.com",
   url:
     process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ||
-    "https://football-invincibles.com",
+    "https://footballinvincibles.com",
   tagline:
     "Football stats, tables & addictive mini-games. Build your Invincible XI.",
   description:

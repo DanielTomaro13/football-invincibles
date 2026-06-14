@@ -26,15 +26,22 @@ export function mulberry32(seed: number): () => number {
  * Saturday" upset factor, as in the AFL engine (there 0.855; football draws
  * give a touch more headroom so unbeaten runs stay reachable).
  */
-export const UPSET_CAP = 0.88;
+export const UPSET_CAP = 0.82;
 
 /** An all-star XI can rate above any single real club — the ceiling it tends to. */
-const ELITE_CEIL = 0.965;
+const ELITE_CEIL = 0.86;
+/** How fast the elite extrapolation approaches the ceiling. */
+const ELITE_SLOPE = 5;
 /** Loss-curve shape (tuned): how fast a favourite's loss risk shrinks. */
-const LOSS_SCALE = 0.55;
-const LOSS_POW = 1.6;
+const LOSS_SCALE = 0.66;
+const LOSS_POW = 1.2;
 /** Every match keeps at least this much draw mass. */
-const DRAW_MIN = 0.06;
+const DRAW_MIN = 0.05;
+/**
+ * Hard ceiling on the reported chance of an unbeaten season. Calibration keeps
+ * even a theoretical best XI near ~3% — this guarantees it never reads above 5%.
+ */
+export const INVINCIBLE_CAP = 5;
 
 /** log5 head-to-head win probability (win-share units), upset-capped. */
 export function winProb(a: number, b: number): number {
@@ -55,7 +62,7 @@ export function ratingToStrength(teamRating: number, strengths: number[]): numbe
     s = strengths[lo] + (strengths[hi] - strengths[lo]) * (idx - lo);
   } else {
     // beyond the best real club: a dream XI climbs toward the elite ceiling
-    s = max + (1 - Math.exp(-(q - 1) * 7)) * (ELITE_CEIL - max);
+    s = max + (1 - Math.exp(-(q - 1) * ELITE_SLOPE)) * (ELITE_CEIL - max);
   }
   return Math.max(min, Math.min(0.985, s));
 }
@@ -165,7 +172,7 @@ export function simulateSeason(
     lossCounts[losses]++;
   }
 
-  const invinciblePct = (lossCounts[0] / runs) * 100;
+  const invinciblePct = Math.min(INVINCIBLE_CAP, (lossCounts[0] / runs) * 100);
   const avgW = Math.round(sumW / runs);
   const avgD = Math.round(sumD / runs);
   const avgL = fixtures.length - avgW - avgD;

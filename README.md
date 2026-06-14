@@ -1,7 +1,7 @@
 # ⚽ Football Invincibles
 
 > Football stats, tables & addictive mini-games. Build your Invincible XI.
-> Live at **football-invincibles.com** (soon). Multi-competition — starting with the Premier League.
+> Live at **footballinvincibles.com** (soon). Multi-competition — starting with the Premier League.
 
 A football stats hub + games arcade, inspired by the AFL [23-0](https://afl23-0.com) /
 [`DanielTomaro13/AFL-23-0`](https://github.com/DanielTomaro13/AFL-23-0) project, rebuilt for football
@@ -36,15 +36,16 @@ difficulty is calibrated the same way. The football twist: a match can be **draw
 and going *invincible* means a season with **zero losses** (draws allowed), exactly
 like Arsenal's real 2003/04 Invincibles (26 W, 12 D, 0 L).
 
-That keeps an unbeaten season **hard but genuinely achievable** — never
-mathematically impossible:
+That keeps an unbeaten season **genuinely hard** — the chance is **capped at 5%
+even for a theoretical best XI** (it lands near ~3% in practice), and a strong
+side must be built to get anywhere near it:
 
 | XI rating | Typical record | Invincible chance |
 |-----------|----------------|-------------------|
-| 80 (mid-table) | 21W 11D 6L | ~0.1% |
-| 88 (top-four) | 26W 8D 3L | ~2.4% |
-| 92 (title-class) | 30W 6D 2L | ~14% |
-| 96+ (dream XI) | 32W 5D 1L | ~44% |
+| 80 (mid-table) | 21W 8D 9L | <0.1% |
+| 88 (top-four) | 26W 6D 6L | ~0.1% |
+| 92 (title-class) | 29W 5D 4L | ~1.6% |
+| 96+ (dream XI) | 30W 5D 3L | ~3% (hard-capped at 5%) |
 
 ## Tech
 
@@ -82,7 +83,8 @@ node pipeline/add-ratings.mjs 2025
 - [ ] More competitions (LaLiga, Serie A, Bundesliga, Ligue 1, UCL)
 - [ ] Daily streaks / shareable result cards
 - [ ] Multi-season player history & xG views
-- [ ] Buy `football-invincibles.com` + deploy
+- [x] Buy `footballinvincibles.com` (on Cloudflare)
+- [ ] Deploy to Cloudflare Pages and point DNS
 
 ---
 

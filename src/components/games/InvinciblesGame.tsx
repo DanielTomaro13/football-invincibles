@@ -222,7 +222,7 @@ export default function InvinciblesGame() {
 
       <p style={{ color: "var(--muted)", fontSize: ".85rem", textAlign: "center", margin: 0 }}>
         Lock 🔒 the players you want to keep, then re-spin or re-roll individual slots to build the strongest XI you can.
-        A great side can genuinely go unbeaten — it&apos;s hard, not impossible.
+        An unbeaten season is deliberately rare — only a near-perfect side gets a real shot.
       </p>
 
       {result && <ResultPanel result={result} rating={rating} />}

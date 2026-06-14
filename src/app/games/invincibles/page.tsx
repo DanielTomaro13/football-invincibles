@@ -23,12 +23,12 @@ export default function InvinciblesPage() {
       slug="invincibles"
       emoji="🏆"
       title="Invincibles"
-      intro="Assemble a starting XI from real Premier League players, then simulate a full 38-game season. The holy grail: go invincible — an entire campaign without a single defeat, just like Arsenal's 2003/04 side. A strong XI genuinely can do it; a weak one will get found out."
+      intro="Assemble a starting XI from real Premier League players, then simulate a full 38-game season. The holy grail: go invincible — an entire campaign without a single defeat, just like Arsenal's 2003/04 side. It's deliberately tough: only a near-perfect XI gets a real shot, and even then it's rare."
       howTo={[
         "Hit Spin XI to fill your 4-3-3 with random real players.",
         "Lock 🔒 the players you want to keep.",
         "Re-roll 🔄 individual slots (you have a limited number) or re-spin the unlocked ones to upgrade your side.",
-        "Watch your team rating climb — title-class sides (90+) have a real shot at an unbeaten season.",
+        "Push your team rating as high as you can — only a near-perfect XI gets a real shot, and even then it's rare (capped at 5%).",
         "Hit Simulate season to play out 38 games against the real league. Zero losses = INVINCIBLE.",
       ]}
     >
