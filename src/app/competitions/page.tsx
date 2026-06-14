@@ -6,9 +6,17 @@ import { pageMeta } from "@/lib/seo";
 export const metadata: Metadata = pageMeta({
   title: "Competitions",
   description:
-    "Football competitions on Football Invincibles. Premier League is live now, with LaLiga, Serie A, Bundesliga, Ligue 1 and the Champions League coming soon.",
+    "Football competitions on Football Invincibles. Premier League, LaLiga and Serie A are live with full tables, stats, players and games; Bundesliga, Ligue 1 and the Champions League are on the way.",
   path: "/competitions",
 });
+
+/** Season-coverage label, e.g. "21 seasons · 2005/06–2025/26". */
+function coverage(seasons: string[]): string {
+  if (!seasons.length) return "";
+  const oldest = seasons[seasons.length - 1];
+  const newest = seasons[0];
+  return `${seasons.length} seasons · ${seasonLabel(oldest)}–${seasonLabel(newest)}`;
+}
 
 export default function CompetitionsPage() {
   return (
@@ -34,6 +42,9 @@ export default function CompetitionsPage() {
             <span style={{ color: "var(--muted)", fontSize: ".85rem" }}>
               {c.country} · {seasonLabel(c.currentSeason)}
             </span>
+            {c.enabled && (
+              <span style={{ color: "var(--muted)", fontSize: ".78rem" }}>📚 {coverage(c.seasons)}</span>
+            )}
             {c.enabled ? (
               <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
                 <Link href={`/tables/${c.slug}`} className="btn" style={{ padding: ".4rem .8rem" }}>

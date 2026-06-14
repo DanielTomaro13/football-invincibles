@@ -42,9 +42,12 @@ side to get anywhere near it.
 - **Tailwind v4** + a small CSS design system
 - **SEO**: per-page metadata, Open Graph/Twitter, `sitemap.ts`, `robots.ts`,
   `manifest.ts`, JSON-LD (`WebSite`, `BreadcrumbList`, `Person`, `VideoGame`, `ItemList`)
-- A data **pipeline** snapshots the documented Premier League API (see
-  [`PREMIER_LEAGUE_API.md`](./PREMIER_LEAGUE_API.md)) into JSON the pages read at build time;
-  a daily GitHub Action refreshes it
+- A data **pipeline** snapshots each league's (reverse-engineered) API into JSON
+  the pages read at build time. One doc per source:
+  [`PREMIER_LEAGUE_API.md`](./PREMIER_LEAGUE_API.md),
+  [`LALIGA_API.md`](./LALIGA_API.md),
+  [`SERIE_A_API.md`](./SERIE_A_API.md). A daily GitHub Action refreshes the
+  Premier League; La Liga and Serie A are committed snapshots (manual rebuilds)
 
 ## Project layout
 
@@ -53,7 +56,8 @@ src/app/            # routes (pages, games, sitemap/robots/manifest)
 src/components/      # UI + games/ (client game components)
 src/lib/            # competitions registry, API clients, sim engine, SEO
 src/data/           # generated season snapshot (pl-2025.json)
-public/data/        # games.json (players+ratings+strengths), fixtures.json
+public/data/        # PL: games.json, fixtures.json, history-index.json …
+                    #   plus per-league dirs: laliga/, seriea/ (same shape)
 pipeline/           # data pipeline (fetch API → datasets, compute ratings)
 ```
 
@@ -65,8 +69,10 @@ npm run dev        # http://localhost:3000
 npm run build      # static export to ./out
 
 # regenerate the dataset from the live API
-npm run data                 # = node pipeline/build-data.mjs 8 2025
+npm run data                 # = node pipeline/build-data.mjs 8 2025  (Premier League)
 node pipeline/add-ratings.mjs 2025
+node pipeline/build-laliga.mjs   # La Liga snapshot  -> public/data/laliga/
+node pipeline/build-seriea.mjs   # Serie A snapshot  -> public/data/seriea/
 ```
 
 ## Deploy (GitHub Pages)
@@ -79,7 +85,8 @@ custom domain (`footballinvincibles.com`) and point Cloudflare DNS at
 
 ## Roadmap
 
-- [ ] More competitions (LaLiga, Serie A, Bundesliga, Ligue 1, UCL)
+- [x] More competitions — LaLiga (13 seasons), Serie A (21 seasons) live
+- [ ] Remaining competitions (Bundesliga, Ligue 1, UCL)
 - [x] Daily challenges, streaks & shareable result cards
 - [x] Global leaderboards (Hall of Fame)
 - [ ] Multi-season player history & xG views
