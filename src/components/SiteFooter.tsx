@@ -32,7 +32,7 @@ export default function SiteFooter() {
             <Link href="/games/invincibles">Invincibles</Link>
             <Link href="/games/footle">Footle</Link>
             <Link href="/games/higher-or-lower">Higher or Lower</Link>
-            <Link href="/games/guess-the-player">Guess the Player</Link>
+            <Link href="/leaderboard">Hall of Fame</Link>
           </nav>
           <nav style={{ display: "grid", gap: 6, fontSize: ".85rem" }}>
             <strong style={{ color: "var(--text)" }}>Site</strong>

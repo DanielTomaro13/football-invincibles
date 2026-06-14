@@ -1,6 +1,10 @@
 "use client";
 import { useEffect, useState } from "react";
 import { teamBadge } from "@/lib/api-client";
+import { recordScore } from "@/lib/progress";
+import { submitScore } from "@/lib/leaderboard";
+
+const GAME = "score-predictor";
 
 interface Fixture {
   id: string;
@@ -33,9 +37,17 @@ export default function ScorePredictor() {
       });
   }, []);
 
-  if (!fixtures.length) return <p style={{ color: "var(--muted)" }}>Loading fixtures…</p>;
+  const done = fixtures.length > 0 && i >= fixtures.length;
 
-  const done = i >= fixtures.length;
+  useEffect(() => {
+    if (done) {
+      recordScore(GAME, points);
+      submitScore(GAME, points);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [done]);
+
+  if (!fixtures.length) return <p style={{ color: "var(--muted)" }}>Loading fixtures…</p>;
   const f = fixtures[Math.min(i, fixtures.length - 1)];
 
   const reveal = () => {
@@ -64,9 +76,12 @@ export default function ScorePredictor() {
         <p style={{ color: "var(--muted)" }}>
           {exacts} exact scoreline{exacts === 1 ? "" : "s"} (5pts) · {outcomes} correct result{outcomes === 1 ? "" : "s"} (2pts)
         </p>
-        <button className="btn btn-primary" onClick={() => { setI(0); setPoints(0); setLog([]); setRevealed(false); }}>
-          Play again
-        </button>
+        <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
+          <button className="btn btn-primary" onClick={() => { setI(0); setPoints(0); setLog([]); setRevealed(false); }}>
+            Play again
+          </button>
+          <a className="btn" href="/leaderboard">🏆 Leaderboard</a>
+        </div>
       </div>
     );
   }

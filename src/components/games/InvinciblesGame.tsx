@@ -7,8 +7,18 @@ import {
   ratingToStrength,
   type SeasonResult,
 } from "@/lib/invincible-sim";
+import { recordScore } from "@/lib/progress";
+import { submitScore } from "@/lib/leaderboard";
+import Confetti from "@/components/Confetti";
 
 type Strength = { teamId: string; name: string; strength: number };
+
+const GAME = "invincibles";
+const SALARY_CAP = 240; // £m, for Salary Cap mode
+/** Star players cost exponentially more — forces trade-offs under the cap. */
+export function salaryOf(rating: number): number {
+  return Math.round(Math.pow(Math.max(0, rating - 58) / 42, 2.6) * 78 + 1);
+}
 
 const FORMATION: { slot: string; pos: string }[] = [
   { slot: "GK", pos: "Goalkeeper" },
@@ -52,6 +62,7 @@ export default function InvinciblesGame() {
   const [result, setResult] = useState<SeasonResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [simming, setSimming] = useState(false);
+  const [mode, setMode] = useState<"free" | "cap">("free");
 
   const poolByPos = useMemo(() => {
     const m: Record<string, GamePlayer[]> = {};
@@ -139,9 +150,14 @@ export default function InvinciblesGame() {
     return ps.reduce((a, p) => a + p.rating, 0) / ps.length;
   }, [squad]);
   const t = tier(rating);
+  const spend = useMemo(
+    () => squad.reduce((a, s) => a + (s.player ? salaryOf(s.player.rating) : 0), 0),
+    [squad]
+  );
+  const overBudget = mode === "cap" && spend > SALARY_CAP;
 
   const simulate = () => {
-    if (!full || !strengths.length) return;
+    if (!full || !strengths.length || overBudget) return;
     setSimming(true);
     setTimeout(() => {
       const sorted = strengths.map((s) => s.strength).sort((a, b) => a - b);
@@ -149,6 +165,8 @@ export default function InvinciblesGame() {
       const res = simulateSeason(rating, sorted, fixtures, (Math.random() * 1e9) | 0);
       setResult(res);
       setSimming(false);
+      recordScore(GAME, res.points);
+      submitScore(GAME, res.points);
     }, 30);
   };
 
@@ -161,10 +179,17 @@ export default function InvinciblesGame() {
         <button className="btn btn-primary" onClick={spinAll}>
           🎰 {squad.some((s) => s.player) ? "Re-spin XI" : "Spin XI"}
         </button>
-        <button className="btn" onClick={simulate} disabled={!full || simming}>
+        <button className="btn" onClick={simulate} disabled={!full || simming || overBudget}>
           {simming ? "Simulating…" : "▶ Simulate season"}
         </button>
         <button className="btn" onClick={reset}>↺ Reset</button>
+        <button
+          className="btn"
+          onClick={() => setMode((m) => (m === "free" ? "cap" : "free"))}
+          title="Toggle Salary Cap mode"
+        >
+          {mode === "cap" ? `💷 Cap: £${spend}/${SALARY_CAP}m` : "💷 Free spin"}
+        </button>
         <div style={{ marginLeft: "auto", display: "flex", gap: 16, alignItems: "center" }}>
           <div style={{ textAlign: "right" }}>
             <div style={{ fontSize: ".7rem", color: "var(--muted)", textTransform: "uppercase", letterSpacing: ".05em" }}>Re-rolls</div>
@@ -182,6 +207,11 @@ export default function InvinciblesGame() {
       {rating > 0 && (
         <div style={{ textAlign: "center", color: t.color, fontWeight: 700 }}>
           {t.label} side · projected to finish around the {ordinalFinish(rating, strengths)}.
+        </div>
+      )}
+      {overBudget && (
+        <div style={{ textAlign: "center", color: "var(--danger)", fontWeight: 700 }}>
+          💷 Over budget by £{spend - SALARY_CAP}m — re-roll cheaper players to get under the £{SALARY_CAP}m cap.
         </div>
       )}
 
@@ -301,8 +331,17 @@ function ResultPanel({ result, rating }: { result: SeasonResult; rating: number 
   const invLabel = inv >= 1 ? `${inv.toFixed(1)}%` : inv >= 0.05 ? `${inv.toFixed(2)}%` : "<0.05%";
   const story = result.story;
 
+  const wins = story.filter((g) => g.result === "W").length;
+  const draws = story.filter((g) => g.result === "D").length;
+  const losses = story.filter((g) => g.result === "L").length;
+  const share = () => {
+    const txt = `My Invincibles XI (${rating.toFixed(1)} rated): ${wins}W ${draws}D ${losses}L${invincible ? " — INVINCIBLE! 🏆" : ""}\nfootballinvincibles.com/games/invincibles`;
+    navigator.clipboard?.writeText(txt).catch(() => {});
+  };
+
   return (
     <div className="card pop" style={{ padding: "1.25rem", display: "grid", gap: 14 }}>
+      {invincible && <Confetti />}
       <div style={{ textAlign: "center" }}>
         {invincible ? (
           <h2 style={{ fontSize: "2rem", margin: 0, color: "var(--gold)", fontWeight: 900 }}>
@@ -364,6 +403,11 @@ function ResultPanel({ result, rating }: { result: SeasonResult; rating: number 
         <strong style={{ color: "var(--accent)" }}>{invLabel}</strong> of the time. Re-roll for a stronger
         side to shorten the odds.
       </p>
+
+      <div style={{ display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
+        <button className="btn btn-primary" onClick={share}>📋 Share result</button>
+        <a className="btn" href="/leaderboard">🏆 Leaderboard</a>
+      </div>
     </div>
   );
 }

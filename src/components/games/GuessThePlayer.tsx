@@ -1,6 +1,12 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
 import { loadGamesData, dailySeed, rng, type GamePlayer } from "@/lib/games-data";
+import { recordDaily, todaysResult } from "@/lib/progress";
+import DailyStatsPanel from "@/components/games/DailyStats";
+import Confetti from "@/components/Confetti";
+
+const GAME = "guess-the-player";
+const dayNumber = () => Math.floor((Date.now() - Date.UTC(2024, 0, 1)) / 86400000);
 
 function age(b: number | null) {
   return b ? new Date().getFullYear() - b : null;
@@ -13,6 +19,7 @@ export default function GuessThePlayer() {
   const [query, setQuery] = useState("");
   const [wrong, setWrong] = useState<string[]>([]);
   const [done, setDone] = useState<"win" | "lose" | null>(null);
+  const [playedEarlier, setPlayedEarlier] = useState(false);
 
   useEffect(() => {
     loadGamesData().then((d) => {
@@ -20,6 +27,11 @@ export default function GuessThePlayer() {
       setPool(notable);
       const r = rng(dailySeed("guess"));
       setTarget(notable[Math.floor(r() * notable.length)]);
+      const prior = todaysResult(GAME);
+      if (prior) {
+        setDone(prior.won ? "win" : "lose");
+        setPlayedEarlier(true);
+      }
     });
   }, []);
 
@@ -49,16 +61,27 @@ export default function GuessThePlayer() {
     setQuery("");
     if (p.id === target.id) {
       setDone("win");
+      recordDaily(GAME, true, revealed);
       return;
     }
     setWrong((w) => [...w, p.name]);
-    if (revealed >= clues.length) setDone("lose");
-    else setRevealed((r) => r + 1);
+    if (revealed >= clues.length) {
+      setDone("lose");
+      recordDaily(GAME, false, 0);
+    } else setRevealed((r) => r + 1);
   };
 
+  const shareText = (() => {
+    if (!done) return "";
+    const line = done === "win" ? `solved with ${revealed} clue${revealed === 1 ? "" : "s"}` : "X";
+    return `Guess the Player #${dayNumber()} — ${line}\nfootballinvincibles.com/games/guess-the-player`;
+  })();
+
   const revealNext = () => {
-    if (revealed >= clues.length) setDone("lose");
-    else setRevealed((r) => r + 1);
+    if (revealed >= clues.length) {
+      setDone("lose");
+      recordDaily(GAME, false, 0);
+    } else setRevealed((r) => r + 1);
   };
 
   if (!target) return <p style={{ color: "var(--muted)" }}>Loading…</p>;
@@ -110,14 +133,20 @@ export default function GuessThePlayer() {
       )}
 
       {done && (
-        <div className="card pop" style={{ padding: "1.25rem", textAlign: "center" }}>
-          {done === "win" ? (
-            <h2 style={{ color: "var(--accent)", margin: 0 }}>✅ Correct — {score} points!</h2>
-          ) : (
-            <h2 style={{ color: "var(--danger)", margin: 0 }}>❌ It was {target.name}</h2>
-          )}
-          <p style={{ color: "var(--muted)", margin: ".4rem 0 0" }}>{target.name} · {target.team} · {target.pos}</p>
-        </div>
+        <>
+          {done === "win" && !playedEarlier && <Confetti />}
+          <div className="card pop" style={{ padding: "1.25rem", textAlign: "center" }}>
+            {playedEarlier ? (
+              <h2 style={{ margin: 0 }}>You&apos;ve already played today</h2>
+            ) : done === "win" ? (
+              <h2 style={{ color: "var(--accent)", margin: 0 }}>✅ Correct — {score} points!</h2>
+            ) : (
+              <h2 style={{ color: "var(--danger)", margin: 0 }}>❌ It was {target.name}</h2>
+            )}
+            <p style={{ color: "var(--muted)", margin: ".4rem 0 0" }}>{target.name} · {target.team} · {target.pos}</p>
+          </div>
+          <DailyStatsPanel game={GAME} shareText={shareText} />
+        </>
       )}
     </div>
   );

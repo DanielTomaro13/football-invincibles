@@ -2,7 +2,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { loadGamesData, type GamePlayer } from "@/lib/games-data";
 import { slugify } from "@/lib/format";
+import { recordScore } from "@/lib/progress";
+import { submitScore } from "@/lib/leaderboard";
 
+const GAME = "beat-the-clock";
 const DURATION = 60;
 const TARGET_COUNT = 30;
 
@@ -40,6 +43,14 @@ export default function BeatTheClock() {
 
   const foundIds = useMemo(() => new Set(found.map((f) => f.id)), [found]);
   const over = started && time === 0;
+
+  useEffect(() => {
+    if (over) {
+      recordScore(GAME, found.length);
+      if (found.length > 0) submitScore(GAME, found.length);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [over]);
 
   const check = (val: string) => {
     const norm = slugify(val);
@@ -126,7 +137,10 @@ export default function BeatTheClock() {
       {over && (
         <div className="card pop" style={{ padding: "1.25rem", textAlign: "center" }}>
           <h2 style={{ margin: 0 }}>Time! You named {found.length} of {TARGET_COUNT}</h2>
-          <button className="btn btn-primary" style={{ marginTop: 10 }} onClick={start}>Play again</button>
+          <div style={{ display: "flex", gap: 8, justifyContent: "center", marginTop: 10 }}>
+            <button className="btn btn-primary" onClick={start}>Play again</button>
+            <a className="btn" href="/leaderboard">🏆 Leaderboard</a>
+          </div>
         </div>
       )}
     </div>

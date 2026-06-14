@@ -1,8 +1,13 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
 import { loadGamesData, dailySeed, rng, type GamePlayer } from "@/lib/games-data";
+import { recordDaily, todaysResult } from "@/lib/progress";
+import DailyStatsPanel from "@/components/games/DailyStats";
+import Confetti from "@/components/Confetti";
 
 const MAX = 8;
+const GAME = "footle";
+const dayNumber = () => Math.floor((Date.now() - Date.UTC(2024, 0, 1)) / 86400000);
 type Cell = { text: string; state: "hit" | "near" | "miss"; arrow?: "▲" | "▼" };
 
 function age(born: number | null) {
@@ -37,6 +42,7 @@ export default function Footle() {
   const [guesses, setGuesses] = useState<GamePlayer[]>([]);
   const [query, setQuery] = useState("");
   const [done, setDone] = useState<"win" | "lose" | null>(null);
+  const [playedEarlier, setPlayedEarlier] = useState(false);
 
   useEffect(() => {
     loadGamesData().then((d) => {
@@ -44,6 +50,11 @@ export default function Footle() {
       setPool(notable);
       const r = rng(dailySeed("footle"));
       setTarget(notable[Math.floor(r() * notable.length)]);
+      const prior = todaysResult(GAME);
+      if (prior) {
+        setDone(prior.won ? "win" : "lose");
+        setPlayedEarlier(true);
+      }
     });
   }, []);
 
@@ -61,9 +72,29 @@ export default function Footle() {
     const next = [...guesses, p];
     setGuesses(next);
     setQuery("");
-    if (p.id === target.id) setDone("win");
-    else if (next.length >= MAX) setDone("lose");
+    if (p.id === target.id) {
+      setDone("win");
+      recordDaily(GAME, true, next.length);
+    } else if (next.length >= MAX) {
+      setDone("lose");
+      recordDaily(GAME, false, 0);
+    }
   };
+
+  const shareText = useMemo(() => {
+    if (!done) return "";
+    const grid = guesses
+      .map((g) =>
+        target
+          ? compare(g, target)
+              .map((c) => (c.state === "hit" ? "🟩" : c.state === "near" ? "🟨" : "⬛"))
+              .join("")
+          : ""
+      )
+      .join("\n");
+    const score = done === "win" ? `${guesses.length}/${MAX}` : `X/${MAX}`;
+    return `Footle #${dayNumber()} ${score}\n${grid}\nfootballinvincibles.com/games/footle`;
+  }, [done, guesses, target]);
 
   if (!target) return <p style={{ color: "var(--muted)" }}>Loading today&apos;s player…</p>;
 
@@ -148,16 +179,22 @@ export default function Footle() {
       </div>
 
       {done && (
-        <div className="card pop" style={{ padding: "1.25rem", textAlign: "center" }}>
-          {done === "win" ? (
-            <h2 style={{ color: "var(--accent)", margin: 0 }}>✅ Got it in {guesses.length}!</h2>
-          ) : (
-            <h2 style={{ color: "var(--danger)", margin: 0 }}>❌ Out of guesses</h2>
-          )}
-          <p style={{ margin: ".5rem 0 0" }}>
-            Today&apos;s player was <strong>{target.name}</strong> ({target.team}).
-          </p>
-        </div>
+        <>
+          {done === "win" && !playedEarlier && <Confetti />}
+          <div className="card pop" style={{ padding: "1.25rem", textAlign: "center" }}>
+            {playedEarlier ? (
+              <h2 style={{ margin: 0 }}>You&apos;ve already played today</h2>
+            ) : done === "win" ? (
+              <h2 style={{ color: "var(--accent)", margin: 0 }}>✅ Got it in {guesses.length}!</h2>
+            ) : (
+              <h2 style={{ color: "var(--danger)", margin: 0 }}>❌ Out of guesses</h2>
+            )}
+            <p style={{ margin: ".5rem 0 0" }}>
+              Today&apos;s player was <strong>{target.name}</strong> ({target.team}).
+            </p>
+          </div>
+          <DailyStatsPanel game={GAME} shareText={shareText} />
+        </>
       )}
     </div>
   );

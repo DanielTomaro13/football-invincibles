@@ -1,6 +1,10 @@
 "use client";
 import { useEffect, useState, useCallback } from "react";
 import { loadGamesData, type GamePlayer } from "@/lib/games-data";
+import { recordScore } from "@/lib/progress";
+import { submitScore } from "@/lib/leaderboard";
+
+const GAME = "higher-or-lower";
 
 const METRICS: { key: keyof GamePlayer; label: string; noun: string }[] = [
   { key: "g", label: "goals", noun: "goals" },
@@ -17,6 +21,7 @@ export default function HigherOrLower() {
   const [best, setBest] = useState(0);
   const [reveal, setReveal] = useState(false);
   const [over, setOver] = useState(false);
+  const [newBest, setNewBest] = useState(false);
 
   const pick = useCallback(
     (exclude: number[], p: GamePlayer[] = pool) => {
@@ -69,6 +74,9 @@ export default function HigherOrLower() {
         setReveal(false);
       } else {
         setOver(true);
+        const nb = recordScore(GAME, streak);
+        setNewBest(nb && streak > 0);
+        if (streak > 0) submitScore(GAME, streak);
       }
     }, 900);
   };
@@ -111,10 +119,14 @@ export default function HigherOrLower() {
       {over && (
         <div className="card pop" style={{ padding: "1.25rem", textAlign: "center" }}>
           <h2 style={{ margin: 0, color: "var(--danger)" }}>Streak over — {streak}</h2>
+          {newBest && <div style={{ color: "var(--gold)", fontWeight: 800, marginTop: 6 }}>🏅 New personal best!</div>}
           <p style={{ color: "var(--muted)" }}>
             {right.name} had {right[metric.key] as number} {metric.label} vs {left.name}&apos;s {left[metric.key] as number}.
           </p>
-          <button className="btn btn-primary" onClick={restart}>Play again</button>
+          <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
+            <button className="btn btn-primary" onClick={restart}>Play again</button>
+            <a className="btn" href="/leaderboard">🏆 Leaderboard</a>
+          </div>
         </div>
       )}
     </div>
