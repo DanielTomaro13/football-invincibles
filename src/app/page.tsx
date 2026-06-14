@@ -1,9 +1,9 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { getStandings } from "@/lib/local";
-import { DEFAULT_COMPETITION, enabledCompetitions } from "@/lib/competitions";
+import { enabledCompetitions } from "@/lib/competitions";
 import { pageMeta } from "@/lib/seo";
 import HomeLeaderboard from "@/components/HomeLeaderboard";
+import HomeTable from "@/components/HomeTable";
 
 export const metadata: Metadata = pageMeta({
   title: "Football Invincibles — Football Stats, Tables & Mini-Games",
@@ -35,10 +35,6 @@ const GAMES = [
 ];
 
 export default function Home() {
-  const c = DEFAULT_COMPETITION;
-  const table = getStandings();
-  const top5 = table.slice(0, 5);
-
   return (
     <div style={{ display: "grid", gap: "2.5rem" }}>
       {/* Hero */}
@@ -78,34 +74,8 @@ export default function Home() {
         <HomeLeaderboard />
       </section>
 
-      {/* Live table snippet */}
-      <section>
-        <SectionHead title={`${c.name} — Top of the table`} href="/tables" cta="Full table" />
-        <div className="card scroll-x">
-          <table className="stat">
-            <thead>
-              <tr><th>#</th><th>Club</th><th>P</th><th>W</th><th>D</th><th>L</th><th>GD</th><th>Pts</th></tr>
-            </thead>
-            <tbody>
-              {top5.map((e) => (
-                <tr key={e.team.id}>
-                  <td>{e.overall.position}</td>
-                  <td style={{ fontWeight: 600 }}>{e.team.name}</td>
-                  <td>{e.overall.played}</td>
-                  <td>{e.overall.won}</td>
-                  <td>{e.overall.drawn}</td>
-                  <td>{e.overall.lost}</td>
-                  <td>{e.overall.goalsFor - e.overall.goalsAgainst}</td>
-                  <td style={{ fontWeight: 700 }}>{e.overall.points}</td>
-                </tr>
-              ))}
-              {top5.length === 0 && (
-                <tr><td colSpan={8} style={{ color: "var(--muted)" }}>Table updates when the season kicks off.</td></tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </section>
+      {/* Live table snippet (competition-aware) */}
+      <HomeTable />
 
       {/* Competitions */}
       <section>

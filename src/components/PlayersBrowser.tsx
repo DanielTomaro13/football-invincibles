@@ -4,7 +4,7 @@ import Link from "next/link";
 import { slugify } from "@/lib/format";
 
 export interface BrowsePlayer {
-  id: number;
+  id: number | string;
   name: string;
   team: string;
   pos: string;
@@ -17,7 +17,7 @@ export interface BrowsePlayer {
 
 const POS = ["All", "Goalkeeper", "Defender", "Midfielder", "Forward"];
 
-export default function PlayersBrowser({ players }: { players: BrowsePlayer[] }) {
+export default function PlayersBrowser({ players, linkable = true }: { players: BrowsePlayer[]; linkable?: boolean }) {
   const [q, setQ] = useState("");
   const [pos, setPos] = useState("All");
 
@@ -70,32 +70,31 @@ export default function PlayersBrowser({ players }: { players: BrowsePlayer[] })
       </div>
 
       <div style={{ display: "grid", gap: 10, gridTemplateColumns: "repeat(auto-fill,minmax(220px,1fr))" }}>
-        {filtered.map((p) => (
-          <Link
-            key={p.id}
-            href={`/players/${p.id}/${slugify(p.name)}`}
-            className="card"
-            style={{ padding: ".8rem", display: "flex", gap: 10, alignItems: "center" }}
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={p.photo}
-              alt={p.name}
-              width={44}
-              height={44}
-              loading="lazy"
-              style={{ borderRadius: "50%", background: "var(--panel-2)", objectFit: "cover" }}
-            />
-            <div style={{ minWidth: 0 }}>
-              <div style={{ fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                {p.name}
+        {filtered.map((p) => {
+          const inner = (
+            <>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={p.photo}
+                alt={p.name}
+                width={44}
+                height={44}
+                loading="lazy"
+                style={{ borderRadius: "50%", background: "var(--panel-2)", objectFit: "cover" }}
+              />
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{p.name}</div>
+                <div style={{ color: "var(--muted)", fontSize: ".8rem" }}>{p.team} · {p.pos.slice(0, 3)} · {p.g}G {p.a}A</div>
               </div>
-              <div style={{ color: "var(--muted)", fontSize: ".8rem" }}>
-                {p.team} · {p.pos.slice(0, 3)} · {p.g}G {p.a}A
-              </div>
-            </div>
-          </Link>
-        ))}
+            </>
+          );
+          const style = { padding: ".8rem", display: "flex", gap: 10, alignItems: "center" } as const;
+          return linkable ? (
+            <Link key={String(p.id)} href={`/players/${p.id}/${slugify(p.name)}`} className="card" style={style}>{inner}</Link>
+          ) : (
+            <div key={String(p.id)} className="card" style={style}>{inner}</div>
+          );
+        })}
       </div>
       {filtered.length === 0 && <p style={{ color: "var(--muted)" }}>No players match.</p>}
     </div>

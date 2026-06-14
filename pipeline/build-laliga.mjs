@@ -25,13 +25,22 @@ const SEAS_DIR = join(OUT, "seasons");
 const B = "https://apim.laliga.com/public-service";
 const KEY = "c13c3a8e2f6b46da9c5c425cf61fab3e";
 
-// LaLiga top tier season subscriptions (slug changes with sponsor)
+// LaLiga top tier season subscriptions (slug changes with sponsor:
+// EA SPORTS 2023+, Santander 2013-2022). 13 seasons available via the API.
 const SEASONS = [
   { year: "2025", slug: "laliga-easports-2025" },
   { year: "2024", slug: "laliga-easports-2024" },
   { year: "2023", slug: "laliga-easports-2023" },
   { year: "2022", slug: "laliga-santander-2022" },
   { year: "2021", slug: "laliga-santander-2021" },
+  { year: "2020", slug: "laliga-santander-2020" },
+  { year: "2019", slug: "laliga-santander-2019" },
+  { year: "2018", slug: "laliga-santander-2018" },
+  { year: "2017", slug: "laliga-santander-2017" },
+  { year: "2016", slug: "laliga-santander-2016" },
+  { year: "2015", slug: "laliga-santander-2015" },
+  { year: "2014", slug: "laliga-santander-2014" },
+  { year: "2013", slug: "laliga-santander-2013" },
 ];
 
 const POS = { 1: "Goalkeeper", 2: "Defender", 3: "Midfielder", 4: "Forward" };
@@ -40,11 +49,18 @@ let calls = 0;
 
 async function get(path, tries = 4) {
   for (let i = 0; i <= tries; i++) {
-    const res = await fetch(B + path, { headers: { "Ocp-Apim-Subscription-Key": KEY, accept: "application/json" } });
-    calls++;
-    if (res.ok) return res.json();
-    if (res.status === 404) return null;
-    if (i === tries) throw new Error(`${res.status} ${path}`);
+    try {
+      const ctrl = new AbortController();
+      const t = setTimeout(() => ctrl.abort(), 20000); // don't hang forever
+      const res = await fetch(B + path, { headers: { "Ocp-Apim-Subscription-Key": KEY, accept: "application/json" }, signal: ctrl.signal });
+      clearTimeout(t);
+      calls++;
+      if (res.ok) return res.json();
+      if (res.status === 404) return null;
+      if (i === tries) throw new Error(`${res.status} ${path}`);
+    } catch (e) {
+      if (i === tries) throw e;
+    }
     await sleep(700 * (i + 1));
   }
 }
@@ -187,13 +203,14 @@ async function main() {
           strength: Math.max(0.12, Math.min(0.92, e.overall.points / (e.overall.played * 3) + (e.overall.goalsFor - e.overall.goalsAgainst) / (e.overall.played * 30))),
         })).sort((a, b) => a.strength - b.strength);
       }
+      // write index/standings/strengths after every season so a partial run is usable
+      writeFileSync(join(OUT, "history-index.json"), JSON.stringify(index));
+      if (currentStandings) writeFileSync(join(OUT, "standings.json"), JSON.stringify({ standings: currentStandings }));
+      if (currentStrengths) writeFileSync(join(OUT, "strengths.json"), JSON.stringify({ strengths: currentStrengths }));
     } catch (e) {
       console.log(`  ${seasonLabel(s.year)}: error ${e.message}`);
     }
   }
-  writeFileSync(join(OUT, "history-index.json"), JSON.stringify(index));
-  if (currentStandings) writeFileSync(join(OUT, "standings.json"), JSON.stringify({ standings: currentStandings }));
-  if (currentStrengths) writeFileSync(join(OUT, "strengths.json"), JSON.stringify({ strengths: currentStrengths }));
   console.log(`\nWrote ${index.seasons.length} La Liga seasons. API calls: ${calls}`);
 }
 

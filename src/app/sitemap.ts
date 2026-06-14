@@ -26,6 +26,9 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "/games",
     "/leaderboard",
     "/competitions",
+    "/about",
+    "/contact",
+    "/privacy",
   ].map((p) => ({
     url: SITE.url + p,
     lastModified: now,

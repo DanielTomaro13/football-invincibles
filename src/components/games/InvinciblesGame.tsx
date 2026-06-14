@@ -437,7 +437,7 @@ export default function InvinciblesGame() {
 
           {overBudget && <div style={{ color: "var(--danger)", fontWeight: 700, textAlign: "center" }}>£{spend - (meta.cap ?? 0)}m over budget — remove a player or pick cheaper ones.</div>}
           {rating > 0 && !result && <div style={{ textAlign: "center", color: t.color, fontWeight: 700 }}>{t.label} side · {formation?.label}</div>}
-          {result && <ResultPanel result={result} rating={rating} mode={mode} squad={squad} />}
+          {result && <ResultPanel result={result} rating={rating} mode={mode} squad={squad} compSlug={comp.slug} compName={comp.shortName} />}
         </>
       )}
 
@@ -519,7 +519,7 @@ function PlayerModal({ v, openSlots, year, team, onAdd, onRemove, onClose }: {
   );
 }
 
-function ResultPanel({ result, rating, mode, squad }: { result: SeasonResult; rating: number; mode: Mode; squad: Slot[] }) {
+function ResultPanel({ result, rating, mode, squad, compSlug, compName }: { result: SeasonResult; rating: number; mode: Mode; squad: Slot[]; compSlug: string; compName: string }) {
   const story = result.story;
   const W = story.filter((g) => g.result === "W").length;
   const D = story.filter((g) => g.result === "D").length;
@@ -554,7 +554,7 @@ function ResultPanel({ result, rating, mode, squad }: { result: SeasonResult; ra
           {story.map((g, i) => <span key={i} title={`MW${g.round}: ${g.home ? "vs" : "@"} ${g.oppName} — ${g.result}`} style={{ width: 22, height: 22, display: "grid", placeItems: "center", borderRadius: 5, fontSize: ".62rem", fontWeight: 800, color: g.result === "L" ? "#fff" : "#04220f", background: g.result === "W" ? "var(--accent)" : g.result === "D" ? "var(--gold)" : "var(--danger)" }}>{g.result}</span>)}
         </div>
       </div>
-      <ScoreSubmit entries={unbeaten ? [{ game: "invincibles", score: W * 3 + D }, { game: "undefeated", score: W * 3 + D }] : [{ game: "invincibles", score: W * 3 + D }]} label={unbeaten ? "Post to the Wall" : "Submit score"} />
+      <ScoreSubmit entries={unbeaten ? [{ game: `invincibles:${compSlug}`, score: W * 3 + D }, { game: `undefeated:${compSlug}`, score: W * 3 + D }] : [{ game: `invincibles:${compSlug}`, score: W * 3 + D }]} label={unbeaten ? `Post to the ${compName} Wall` : "Submit score"} />
       <ShareTeam title={shareTitle} record={`${W}W ${D}D ${L}L · ${W * 3 + D} pts`} rating={rating} mode={MODE_META[mode].label} lines={shareLines} gold={unbeaten} />
       <div style={{ display: "flex", justifyContent: "center" }}>
         <a className="btn" href="/leaderboard">🏆 Hall of Fame</a>

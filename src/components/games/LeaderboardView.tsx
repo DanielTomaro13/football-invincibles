@@ -2,9 +2,12 @@
 import { useEffect, useState } from "react";
 import { topScores, isGlobal, type ScoreEntry } from "@/lib/leaderboard";
 import { getName, setName as persistName, getDaily, getScore } from "@/lib/progress";
+import { useCompetition } from "@/components/CompetitionProvider";
+import LeagueSwitch from "@/components/LeagueSwitch";
 
+// "invincibles" is per-competition (resolved at fetch time); the rest are global.
 const BOARDS = [
-  { game: "invincibles", label: "Invincibles", unit: "pts", emoji: "🏆" },
+  { game: "invincibles", label: "Invincibles", unit: "pts", emoji: "🏆", perComp: true },
   { game: "higher-or-lower", label: "Higher or Lower", unit: "streak", emoji: "⚖️" },
   { game: "beat-the-clock", label: "Beat the Clock", unit: "named", emoji: "⏱️" },
   { game: "score-predictor", label: "Score Predictor", unit: "pts", emoji: "🎯" },
@@ -16,6 +19,7 @@ const DAILIES = [
 ];
 
 export default function LeaderboardView() {
+  const { comp } = useCompetition();
   const [name, setName] = useState("");
   const [saved, setSaved] = useState(false);
   const [boards, setBoards] = useState<Record<string, ScoreEntry[]>>({});
@@ -24,24 +28,26 @@ export default function LeaderboardView() {
   const [streaks, setStreaks] = useState<Record<string, { cur: number; max: number }>>({});
   const global = isGlobal();
 
+  // global boards + personal bests/streaks (once)
   useEffect(() => {
     setName(getName());
-    topScores("undefeated", true, 25).then(setWall);
-    Promise.all(BOARDS.map((b) => topScores(b.game, true, 10))).then((res) => {
-      const m: Record<string, ScoreEntry[]> = {};
-      BOARDS.forEach((b, i) => (m[b.game] = res[i]));
-      setBoards(m);
+    const globalBoards = BOARDS.filter((b) => !b.perComp);
+    Promise.all(globalBoards.map((b) => topScores(b.game, true, 10))).then((res) => {
+      setBoards((prev) => { const m = { ...prev }; globalBoards.forEach((b, i) => (m[b.game] = res[i])); return m; });
     });
     const pb: Record<string, number> = {};
     BOARDS.forEach((b) => (pb[b.game] = getScore(b.game).best));
     setBests(pb);
     const st: Record<string, { cur: number; max: number }> = {};
-    DAILIES.forEach((d) => {
-      const s = getDaily(d.game);
-      st[d.game] = { cur: s.cur, max: s.max };
-    });
+    DAILIES.forEach((d) => { const s = getDaily(d.game); st[d.game] = { cur: s.cur, max: s.max }; });
     setStreaks(st);
   }, []);
+
+  // per-competition boards (Wall + Invincibles) — refetch on league switch
+  useEffect(() => {
+    topScores(`undefeated:${comp.slug}`, true, 25).then(setWall);
+    topScores(`invincibles:${comp.slug}`, true, 10).then((r) => setBoards((prev) => ({ ...prev, invincibles: r })));
+  }, [comp.slug]);
 
   const saveName = () => {
     persistName(name);
@@ -74,12 +80,15 @@ export default function LeaderboardView() {
         </p>
       )}
 
-      {/* The Invincibles Wall — unbeaten seasons */}
+      {/* The Invincibles Wall — unbeaten seasons (per competition) */}
       <section>
-        <h2 style={{ fontSize: "1.4rem", fontWeight: 900, marginBottom: 4 }}>🛡️ The Invincibles Wall</h2>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap", marginBottom: 4 }}>
+          <h2 style={{ fontSize: "1.4rem", fontWeight: 900, margin: 0 }}>🛡️ {comp.shortName} Invincibles Wall</h2>
+          <LeagueSwitch compact />
+        </div>
         <p style={{ color: "var(--muted)", fontSize: ".88rem", margin: "0 0 10px" }}>
-          Managers who built a side that went a whole season <strong>unbeaten</strong> — no losses. Ranked by points,
-          so the closer to a perfect, all-win campaign, the higher you climb. ⭐ marks a flawless 38-win season.
+          Managers who built a {comp.shortName} side that went a whole season <strong>unbeaten</strong> — no losses.
+          Ranked by points, so the closer to a perfect, all-win campaign, the higher you climb. ⭐ marks a flawless 38-win season. Each league has its own Wall.
         </p>
         <div className="card" style={{ padding: "1rem", borderColor: "var(--gold)" }}>
           {wall.length === 0 ? (

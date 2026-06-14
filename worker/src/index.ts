@@ -30,6 +30,12 @@ const GAMES: Record<string, { dir: "high" | "low"; max: number }> = {
 
 const TOP_N = 50;
 
+// A game key may be namespaced per competition, e.g. "invincibles:la-liga".
+// Validate the base game against the allow-list; store under the full key.
+function gameCfg(game: string) {
+  return GAMES[String(game).split(":")[0]];
+}
+
 function cors(env: Env): Record<string, string> {
   return {
     "Access-Control-Allow-Origin": env.ALLOWED_ORIGIN || "*",
@@ -60,7 +66,7 @@ export default {
 
     if (req.method === "GET" && url.pathname === "/leaderboard") {
       const game = url.searchParams.get("game") || "";
-      if (!GAMES[game]) return json({ error: "unknown game" }, env, 400);
+      if (!gameCfg(game)) return json({ error: "unknown game" }, env, 400);
       const limit = Math.min(50, Math.max(1, Number(url.searchParams.get("limit")) || 10));
       const list = ((await env.LEADERBOARD.get(`lb:${game}`, "json")) as ScoreEntry[]) || [];
       return json(list.slice(0, limit), env);
@@ -73,7 +79,7 @@ export default {
       } catch {
         return json({ error: "bad json" }, env, 400);
       }
-      const cfg = GAMES[body?.game];
+      const cfg = gameCfg(body?.game);
       if (!cfg) return json({ error: "unknown game" }, env, 400);
       const score = Number(body.score);
       if (!Number.isFinite(score) || score < 0 || score > cfg.max)

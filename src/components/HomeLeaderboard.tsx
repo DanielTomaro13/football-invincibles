@@ -2,35 +2,43 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { topScores, type ScoreEntry } from "@/lib/leaderboard";
+import { useCompetition } from "@/components/CompetitionProvider";
+import LeagueSwitch from "@/components/LeagueSwitch";
 
 export default function HomeLeaderboard() {
+  const { comp } = useCompetition();
   const [wall, setWall] = useState<ScoreEntry[]>([]);
   const [inv, setInv] = useState<ScoreEntry[]>([]);
 
   useEffect(() => {
-    topScores("undefeated", true, 6).then(setWall);
-    topScores("invincibles", true, 6).then(setInv);
-  }, []);
+    topScores(`undefeated:${comp.slug}`, true, 6).then(setWall);
+    topScores(`invincibles:${comp.slug}`, true, 6).then(setInv);
+  }, [comp.slug]);
 
   return (
-    <div style={{ display: "grid", gap: 16, gridTemplateColumns: "repeat(auto-fit,minmax(280px,1fr))" }}>
-      <Board
-        title="🛡️ The Invincibles Wall"
-        subtitle="Managers who went a season unbeaten"
-        rows={wall}
-        unit="pts"
-        gold
-        emptyHref="/games/invincibles"
-        emptyText="Be the first to go unbeaten →"
-      />
-      <Board
-        title="🏆 Invincibles — top points"
-        subtitle="Best simulated seasons"
-        rows={inv}
-        unit="pts"
-        emptyHref="/games/invincibles"
-        emptyText="Play Invincibles →"
-      />
+    <div style={{ display: "grid", gap: 12 }}>
+      <div style={{ display: "flex", justifyContent: "flex-end" }}>
+        <LeagueSwitch compact />
+      </div>
+      <div style={{ display: "grid", gap: 16, gridTemplateColumns: "repeat(auto-fit,minmax(280px,1fr))" }}>
+        <Board
+          title={`🛡️ ${comp.shortName} Invincibles Wall`}
+          subtitle="Managers who went a season unbeaten"
+          rows={wall}
+          unit="pts"
+          gold
+          emptyHref="/games/invincibles"
+          emptyText="Be the first to go unbeaten →"
+        />
+        <Board
+          title="🏆 Invincibles — top points"
+          subtitle={`Best simulated ${comp.shortName} seasons`}
+          rows={inv}
+          unit="pts"
+          emptyHref="/games/invincibles"
+          emptyText="Play Invincibles →"
+        />
+      </div>
     </div>
   );
 }

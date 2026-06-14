@@ -19,6 +19,14 @@ export default function SiteFooter() {
         <div style={{ maxWidth: 320 }}>
           <strong style={{ color: "var(--text)" }}>{SITE.name}</strong>
           <p style={{ fontSize: ".85rem", marginTop: 6 }}>{SITE.tagline}</p>
+          <a
+            href="https://ko-fi.com/danieltomaro"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ display: "inline-flex", alignItems: "center", gap: 6, marginTop: 10, padding: ".45rem .8rem", borderRadius: 8, background: "#13C3FF", color: "#04220f", fontWeight: 800, fontSize: ".85rem" }}
+          >
+            ☕ Support on Ko-fi
+          </a>
         </div>
         <div style={{ display: "flex", gap: "2.5rem", marginLeft: "auto", flexWrap: "wrap" }}>
           <nav style={{ display: "grid", gap: 6, fontSize: ".85rem" }}>
@@ -37,8 +45,10 @@ export default function SiteFooter() {
           </nav>
           <nav style={{ display: "grid", gap: 6, fontSize: ".85rem" }}>
             <strong style={{ color: "var(--text)" }}>Site</strong>
-            <Link href="/leaderboard">Hall of Fame</Link>
+            <Link href="/about">About</Link>
             <Link href="/competitions">Competitions</Link>
+            <Link href="/contact">Contact</Link>
+            <Link href="/privacy">Privacy Policy</Link>
           </nav>
         </div>
       </div>
@@ -46,8 +56,11 @@ export default function SiteFooter() {
         className="container-x"
         style={{ marginTop: "1.5rem", fontSize: ".78rem", opacity: 0.7 }}
       >
-        © {new Date().getFullYear()} {SITE.name}. Unofficial. Not affiliated with
-        the Premier League. Data for informational and entertainment use.
+        © {new Date().getFullYear()} {SITE.name}. Unofficial — not affiliated with the
+        Premier League, LaLiga or any club. Data for informational and entertainment use.{" "}
+        <Link href="/privacy" style={{ color: "var(--muted)" }}>Privacy</Link> ·{" "}
+        <Link href="/about" style={{ color: "var(--muted)" }}>About</Link> ·{" "}
+        <Link href="/contact" style={{ color: "var(--muted)" }}>Contact</Link>
       </div>
     </footer>
   );
