@@ -7,6 +7,9 @@ const SITES = [
   { key: "afl", label: "AFL 23-0", href: "https://afl23-0.com" },
   { key: "nrl", label: "NRL 24-0", href: "https://nrl24-0.com" },
   { key: "football", label: "Football Invincibles", href: "https://footballinvincibles.com" },
+  { key: "mlb", label: "MLB 162-0", href: "https://mlb162-0.com" },
+  { key: "nba", label: "NBA 82-0", href: "https://nba82-0.com" },
+  { key: "f1", label: "F1 Slam", href: "https://f1slam.com" },
 ];
 
 export default function SisterSites({ active }: { active: "afl" | "nrl" | "football" }) {
