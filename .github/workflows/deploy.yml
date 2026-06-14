@@ -1,0 +1,59 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  # rebuild daily so the static snapshot stays reasonably fresh
+  schedule:
+    - cron: "17 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # Best-effort live data refresh; falls back to the committed snapshot.
+      - name: Refresh data
+        continue-on-error: true
+        run: |
+          node pipeline/build-data.mjs 8 2025 && node pipeline/add-ratings.mjs 2025 \
+            || echo "data refresh skipped — building with committed snapshot"
+
+      - name: Build static export
+        run: npm run build
+        env:
+          NEXT_PUBLIC_SITE_URL: https://footballinvincibles.com
+          NEXT_PUBLIC_LEADERBOARD_URL: ${{ vars.LEADERBOARD_URL }}
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./out
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

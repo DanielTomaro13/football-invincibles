@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { getStandings } from "@/lib/api";
+import { getStandings } from "@/lib/local";
 import { DEFAULT_COMPETITION, enabledCompetitions } from "@/lib/competitions";
 import { pageMeta } from "@/lib/seo";
 
@@ -18,8 +18,6 @@ export const metadata: Metadata = pageMeta({
   ],
 });
 
-export const revalidate = 1800;
-
 const GAMES = [
   { slug: "invincibles", title: "Invincibles", blurb: "Spin clubs & eras, draft an XI, go a season unbeaten.", emoji: "🏆" },
   { slug: "footle", title: "Footle", blurb: "Wordle for footballers — 8 guesses, daily player.", emoji: "🟩" },
@@ -30,9 +28,9 @@ const GAMES = [
   { slug: "score-predictor", title: "Score Predictor", blurb: "Call the scoreline on real fixtures.", emoji: "🎯" },
 ];
 
-export default async function Home() {
+export default function Home() {
   const c = DEFAULT_COMPETITION;
-  const table = await getStandings(c.sdpId, c.currentSeason);
+  const table = getStandings();
   const top5 = table.slice(0, 5);
 
   return (

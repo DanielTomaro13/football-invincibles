@@ -3,9 +3,8 @@
 > Football stats, tables & addictive mini-games. Build your Invincible XI.
 > Live at **footballinvincibles.com** (soon). Multi-competition — starting with the Premier League.
 
-A football stats hub + games arcade, inspired by the AFL [23-0](https://afl23-0.com) /
-[`DanielTomaro13/AFL-23-0`](https://github.com/DanielTomaro13/AFL-23-0) project, rebuilt for football
-and designed from day one to scale across competitions.
+A football stats hub + games arcade — the football counterpart to my AFL project
+[23-0](https://afl23-0.com) — designed from day one to scale across competitions.
 
 ## What's inside
 
@@ -29,32 +28,23 @@ and designed from day one to scale across competitions.
 
 ## The Invincibles simulation
 
-The season engine is a faithful port of the AFL-23-0 model
-(`src/lib/invincible-sim.ts`) — the same upset-capped **log5** head-to-head
-probability and the same **rating → real-strength-distribution** mapping, so the
-difficulty is calibrated the same way. The football twist: a match can be **drawn**,
-and going *invincible* means a season with **zero losses** (draws allowed), exactly
-like Arsenal's real 2003/04 Invincibles (26 W, 12 D, 0 L).
-
-That keeps an unbeaten season **genuinely hard** — the chance is **capped at 5%
-even for a theoretical best XI** (it lands near ~3% in practice), and a strong
-side must be built to get anywhere near it:
-
-| XI rating | Typical record | Invincible chance |
-|-----------|----------------|-------------------|
-| 80 (mid-table) | 21W 8D 9L | <0.1% |
-| 88 (top-four) | 26W 6D 6L | ~0.1% |
-| 92 (title-class) | 29W 5D 4L | ~1.6% |
-| 96+ (dream XI) | 30W 5D 3L | ~3% (hard-capped at 5%) |
+The season engine (`src/lib/invincible-sim.ts`) uses an upset-capped **log5**
+head-to-head probability and a **rating → real-strength-distribution** mapping.
+A match can be won, drawn or lost, and going *invincible* means a season with
+**zero losses** (draws allowed), exactly like Arsenal's real 2003/04 Invincibles
+(26 W, 12 D, 0 L). It is deliberately tough — the unbeaten chance is **hard-capped
+at 5%** even for a theoretical best XI, and you have to build a genuinely elite
+side to get anywhere near it.
 
 ## Tech
 
-- **Next.js (App Router) + TypeScript + React 19**
+- **Next.js (App Router) + TypeScript + React 19**, exported as a **static site** for GitHub Pages
 - **Tailwind v4** + a small CSS design system
 - **SEO**: per-page metadata, Open Graph/Twitter, `sitemap.ts`, `robots.ts`,
   `manifest.ts`, JSON-LD (`WebSite`, `BreadcrumbList`, `Person`, `VideoGame`, `ItemList`)
-- ISR/SSG data fetching against the documented Premier League API (see
-  [`PREMIER_LEAGUE_API.md`](./PREMIER_LEAGUE_API.md))
+- A data **pipeline** snapshots the documented Premier League API (see
+  [`PREMIER_LEAGUE_API.md`](./PREMIER_LEAGUE_API.md)) into JSON the pages read at build time;
+  a daily GitHub Action refreshes it
 
 ## Project layout
 
@@ -72,19 +62,29 @@ pipeline/           # data pipeline (fetch API → datasets, compute ratings)
 ```bash
 npm install
 npm run dev        # http://localhost:3000
+npm run build      # static export to ./out
 
 # regenerate the dataset from the live API
 npm run data                 # = node pipeline/build-data.mjs 8 2025
 node pipeline/add-ratings.mjs 2025
 ```
 
+## Deploy (GitHub Pages)
+
+Pushing to `main` runs `.github/workflows/deploy.yml`, which builds the static
+export and publishes it to GitHub Pages. A daily cron rebuild keeps the data
+fresh. One-time setup: **Settings → Pages → Source: GitHub Actions**, then add the
+custom domain (`footballinvincibles.com`) and point Cloudflare DNS at
+`<user>.github.io`.
+
 ## Roadmap
 
 - [ ] More competitions (LaLiga, Serie A, Bundesliga, Ligue 1, UCL)
-- [ ] Daily streaks / shareable result cards
+- [x] Daily challenges, streaks & shareable result cards
+- [x] Global leaderboards (Hall of Fame)
 - [ ] Multi-season player history & xG views
 - [x] Buy `footballinvincibles.com` (on Cloudflare)
-- [ ] Deploy to Cloudflare Pages and point DNS
+- [x] Deploy via GitHub Pages
 
 ---
 

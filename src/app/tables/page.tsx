@@ -5,8 +5,6 @@ import JsonLd from "@/components/JsonLd";
 import { DEFAULT_COMPETITION, COMPETITIONS, seasonLabel } from "@/lib/competitions";
 import { pageMeta, breadcrumbJsonLd } from "@/lib/seo";
 
-export const revalidate = 600;
-
 export const metadata: Metadata = pageMeta({
   title: `Premier League Table ${seasonLabel(DEFAULT_COMPETITION.currentSeason)}`,
   description: `The live Premier League table for ${seasonLabel(DEFAULT_COMPETITION.currentSeason)} — standings, points, goal difference and form for all 20 clubs.`,

@@ -1,9 +1,10 @@
-import { getStandings, teamBadge } from "@/lib/api";
+import { getStandings } from "@/lib/local";
+import { teamBadge } from "@/lib/api-client";
 import type { Competition } from "@/lib/competitions";
 import { seasonLabel } from "@/lib/competitions";
 
-export default async function StandingsTable({ comp }: { comp: Competition }) {
-  const table = await getStandings(comp.sdpId, comp.currentSeason);
+export default function StandingsTable({ comp }: { comp: Competition }) {
+  const table = getStandings();
 
   return (
     <div className="card" style={{ overflowX: "auto" }}>
@@ -20,7 +21,6 @@ export default async function StandingsTable({ comp }: { comp: Competition }) {
             <th>GA</th>
             <th>GD</th>
             <th>Pts</th>
-            <th>Form</th>
           </tr>
         </thead>
         <tbody>
@@ -37,10 +37,12 @@ export default async function StandingsTable({ comp }: { comp: Competition }) {
                     </span>
                   )}
                 </td>
-                <td style={{ fontWeight: 600, display: "flex", alignItems: "center", gap: 8 }}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={teamBadge(e.team.id)} alt="" width={20} height={20} loading="lazy" />
-                  {e.team.name}
+                <td style={{ fontWeight: 600 }}>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={teamBadge(e.team.id)} alt="" width={20} height={20} loading="lazy" />
+                    {e.team.name}
+                  </span>
                 </td>
                 <td>{e.overall.played}</td>
                 <td>{e.overall.won}</td>
@@ -53,14 +55,13 @@ export default async function StandingsTable({ comp }: { comp: Competition }) {
                   {gd}
                 </td>
                 <td style={{ fontWeight: 800 }}>{e.overall.points}</td>
-                <td style={{ color: "var(--muted)", fontSize: ".8rem" }}>—</td>
               </tr>
             );
           })}
           {table.length === 0 && (
             <tr>
-              <td colSpan={11} style={{ color: "var(--muted)" }}>
-                No table yet for the {seasonLabel(comp.currentSeason)} season — check back at kick-off.
+              <td colSpan={10} style={{ color: "var(--muted)" }}>
+                No table yet for the {seasonLabel(comp.currentSeason)} season.
               </td>
             </tr>
           )}

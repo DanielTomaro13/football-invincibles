@@ -1,75 +1,71 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { getPlayerCareer, getPlayerSeasonStats, playerPhoto, teamBadge } from "@/lib/api";
-import { DEFAULT_COMPETITION, seasonLabel } from "@/lib/competitions";
+import { allPlayers, getPlayer, SEASON } from "@/lib/local";
+import { playerPhoto, teamBadge } from "@/lib/api-client";
+import { seasonLabel } from "@/lib/competitions";
 import { pageMeta } from "@/lib/seo";
 import { ageFromDob } from "@/lib/format";
 import JsonLd from "@/components/JsonLd";
 
-export const revalidate = 86400;
-
 type Params = Promise<{ id: string; slug: string }>;
 
-async function load(id: string) {
-  const career = await getPlayerCareer(id);
-  if (!career.length) return null;
-  const latest = career[career.length - 1];
-  return { career, latest };
+export function generateStaticParams() {
+  return allPlayers().map((p) => ({ id: String(p.id), slug: p.slug }));
 }
 
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
   const { id, slug } = await params;
-  const data = await load(id);
-  if (!data) return {};
-  const name = data.latest.name?.display ?? "Player";
-  const team = data.latest.currentTeam?.name ?? "";
-  const pos = data.latest.position ?? "";
+  const p = getPlayer(id);
+  if (!p) return {};
+  const team = p.team?.name ?? "";
   return pageMeta({
-    title: `${name} — ${team} ${pos} Profile & Stats`,
-    description: `${name}, ${pos} for ${team}. Premier League profile: nationality, age, shirt number and season stats.`,
+    title: `${p.name} — ${team} ${p.position ?? ""} Profile & Stats`,
+    description: `${p.name}, ${p.position} for ${team}. Premier League profile: nationality, age, shirt number and season stats.`,
     path: `/players/${id}/${slug}`,
     image: playerPhoto(id, "250x250"),
-    keywords: [name, `${name} stats`, `${name} ${team}`],
+    keywords: [p.name, `${p.name} stats`, `${p.name} ${team}`],
   });
 }
 
+const num = (stats: Record<string, number>, ...keys: string[]) => {
+  for (const k of keys) if (stats[k] != null) return Math.round(stats[k]);
+  return null;
+};
+
 export default async function PlayerPage({ params }: { params: Params }) {
   const { id } = await params;
-  const data = await load(id);
-  if (!data) notFound();
-  const p = data.latest;
-  const c = DEFAULT_COMPETITION;
-  const stats = await getPlayerSeasonStats(c.sdpId, c.currentSeason, id);
-  const name = p.name?.display ?? "Player";
-  const age = ageFromDob(p.dates?.birth);
+  const p = getPlayer(id);
+  if (!p) notFound();
+  const age = ageFromDob(p.birth);
 
   const lines: { label: string; value: string | number }[] = [
-    { label: "Club", value: p.currentTeam?.name ?? "—" },
+    { label: "Club", value: p.team?.name ?? "—" },
     { label: "Position", value: p.position ?? "—" },
-    { label: "Nationality", value: p.country?.country ?? "—" },
+    { label: "Nationality", value: p.country ?? "—" },
     { label: "Age", value: age ?? "—" },
     { label: "Shirt", value: p.shirtNum ?? "—" },
     { label: "Height", value: p.height ? `${p.height} cm` : "—" },
     { label: "Foot", value: p.preferredFoot ?? "—" },
   ];
 
-  const statRows: { label: string; key: string }[] = [
-    { label: "Appearances", key: "appearances" },
-    { label: "Goals", key: "goals" },
-    { label: "Assists", key: "goalAssists" },
-    { label: "Shots", key: "totalShots" },
-    { label: "Passes", key: "totalPasses" },
-    { label: "Clean sheets", key: "cleanSheets" },
-    { label: "Yellow cards", key: "yellowCards" },
+  const statRows: { label: string; keys: string[] }[] = [
+    { label: "Appearances", keys: ["appearances"] },
+    { label: "Goals", keys: ["goals"] },
+    { label: "Assists", keys: ["goalAssists", "goal_assists"] },
+    { label: "Shots", keys: ["totalShots", "total_shots"] },
+    { label: "Passes", keys: ["totalPasses", "total_passes"] },
+    { label: "Clean sheets", keys: ["cleanSheets", "clean_sheets"] },
+    { label: "Yellow cards", keys: ["yellowCards"] },
   ];
+  const hasStats = statRows.some((s) => num(p.stats, ...s.keys) != null);
 
   const personLd = {
     "@context": "https://schema.org",
     "@type": "Person",
-    name,
-    nationality: p.country?.country,
+    name: p.name,
+    nationality: p.country,
     jobTitle: "Professional footballer",
-    affiliation: p.currentTeam?.name,
+    affiliation: p.team?.name,
     image: playerPhoto(id, "250x250"),
   };
 
@@ -80,19 +76,19 @@ export default async function PlayerPage({ params }: { params: Params }) {
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={playerPhoto(id, "250x250")}
-          alt={name}
+          alt={p.name}
           width={120}
           height={150}
           style={{ borderRadius: 14, background: "var(--panel-2)", objectFit: "cover" }}
         />
         <div style={{ display: "grid", gap: 6 }}>
-          <h1 style={{ fontSize: "2rem", fontWeight: 900, margin: 0 }}>{name}</h1>
+          <h1 style={{ fontSize: "2rem", fontWeight: 900, margin: 0 }}>{p.name}</h1>
           <div style={{ display: "flex", alignItems: "center", gap: 8, color: "var(--muted)" }}>
-            {p.currentTeam?.id && (
+            {p.team?.id && (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={teamBadge(p.currentTeam.id)} alt="" width={22} height={22} />
+              <img src={teamBadge(p.team.id)} alt="" width={22} height={22} />
             )}
-            {p.currentTeam?.name} · {p.position}
+            {p.team?.name} · {p.position}
           </div>
         </div>
       </div>
@@ -114,23 +110,19 @@ export default async function PlayerPage({ params }: { params: Params }) {
 
         <section className="card" style={{ padding: "1rem" }}>
           <h2 style={{ fontSize: "1.05rem", fontWeight: 800, marginTop: 0 }}>
-            {seasonLabel(c.currentSeason)} stats
+            {seasonLabel(SEASON)} stats
           </h2>
           <table className="stat">
             <tbody>
               {statRows.map((s) => (
-                <tr key={s.key}>
+                <tr key={s.label}>
                   <td style={{ color: "var(--muted)" }}>{s.label}</td>
-                  <td style={{ textAlign: "right", fontWeight: 700 }}>
-                    {stats[s.key] != null ? Math.round(stats[s.key]) : "—"}
-                  </td>
+                  <td style={{ textAlign: "right", fontWeight: 700 }}>{num(p.stats, ...s.keys) ?? "—"}</td>
                 </tr>
               ))}
             </tbody>
           </table>
-          {Object.keys(stats).length === 0 && (
-            <p style={{ color: "var(--muted)", fontSize: ".85rem" }}>No stats recorded this season.</p>
-          )}
+          {!hasStats && <p style={{ color: "var(--muted)", fontSize: ".85rem" }}>No stats recorded this season.</p>}
         </section>
       </div>
     </div>

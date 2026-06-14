@@ -1,3 +1,5 @@
+export const dynamic = "force-static";
+
 import type { MetadataRoute } from "next";
 import { SITE } from "@/lib/seo";
 import { COMPETITIONS } from "@/lib/competitions";

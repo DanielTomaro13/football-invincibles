@@ -4,8 +4,6 @@ import StandingsTable from "@/components/StandingsTable";
 import { COMPETITIONS, getCompetition, seasonLabel } from "@/lib/competitions";
 import { pageMeta } from "@/lib/seo";
 
-export const revalidate = 600;
-
 export function generateStaticParams() {
   return COMPETITIONS.filter((c) => c.enabled).map((c) => ({ competition: c.slug }));
 }

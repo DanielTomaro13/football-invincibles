@@ -1,21 +1,12 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Static export for GitHub Pages (no request-time server).
+  output: "export",
   reactStrictMode: true,
+  trailingSlash: true,
   images: {
-    remotePatterns: [
-      { protocol: "https", hostname: "resources.premierleague.com" },
-    ],
-  },
-  async headers() {
-    return [
-      {
-        source: "/(.*)",
-        headers: [
-          { key: "X-Content-Type-Options", value: "nosniff" },
-          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-        ],
-      },
-    ];
+    // GitHub Pages can't run the Next image optimizer; we use plain <img> tags.
+    unoptimized: true,
   },
 };
 
