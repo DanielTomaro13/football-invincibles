@@ -27,10 +27,6 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   });
 }
 
-const num = (stats: Record<string, number>, ...keys: string[]) => {
-  for (const k of keys) if (stats[k] != null) return Math.round(stats[k]);
-  return null;
-};
 
 export default async function PlayerPage({ params }: { params: Params }) {
   const { id } = await params;
@@ -48,16 +44,74 @@ export default async function PlayerPage({ params }: { params: Params }) {
     { label: "Foot", value: p.preferredFoot ?? "—" },
   ];
 
-  const statRows: { label: string; keys: string[] }[] = [
-    { label: "Appearances", keys: ["appearances"] },
-    { label: "Goals", keys: ["goals"] },
-    { label: "Assists", keys: ["goalAssists", "goal_assists"] },
-    { label: "Shots", keys: ["totalShots", "total_shots"] },
-    { label: "Passes", keys: ["totalPasses", "total_passes"] },
-    { label: "Clean sheets", keys: ["cleanSheets", "clean_sheets"] },
-    { label: "Yellow cards", keys: ["yellowCards"] },
+  const val = (keys: string[], dec = 0): string | null => {
+    for (const k of keys) if (p.stats[k] != null) return p.stats[k].toFixed(dec);
+    return null;
+  };
+  const STAT_GROUPS: { title: string; rows: { label: string; keys: string[]; dec?: number }[] }[] = [
+    {
+      title: "Attacking",
+      rows: [
+        { label: "Goals", keys: ["goals"] },
+        { label: "Assists", keys: ["goalAssists", "goal_assists"] },
+        { label: "Shots", keys: ["totalShots", "total_shots"] },
+        { label: "Shots on target", keys: ["shotsOnTargetIncGoals"] },
+        { label: "Chances created", keys: ["keyPassesAttemptAssists"] },
+        { label: "Headed goals", keys: ["headedGoals"] },
+        { label: "Penalty goals", keys: ["penaltyGoals"] },
+        { label: "Hit woodwork", keys: ["hitWoodwork"] },
+        { label: "Offsides", keys: ["offsides"] },
+      ],
+    },
+    {
+      title: "Passing & possession",
+      rows: [
+        { label: "Passes", keys: ["totalPasses", "total_passes"] },
+        { label: "Forward passes", keys: ["forwardPasses"] },
+        { label: "Successful crosses", keys: ["successfulCrossesOpenPlay"] },
+        { label: "Through balls", keys: ["throughBalls"] },
+        { label: "Duels won", keys: ["duelsWon"] },
+        { label: "Successful dribbles", keys: ["successfulDribbles"] },
+      ],
+    },
+    {
+      title: "Defending",
+      rows: [
+        { label: "Tackles won", keys: ["tacklesWon"] },
+        { label: "Total tackles", keys: ["totalTackles"] },
+        { label: "Interceptions", keys: ["interceptions"] },
+        { label: "Clearances", keys: ["totalClearances"] },
+        { label: "Blocks", keys: ["blocks", "blockedShots"] },
+        { label: "Recoveries", keys: ["recoveries"] },
+        { label: "Aerial duels won", keys: ["aerialDuelsWon"] },
+      ],
+    },
+    {
+      title: "Goalkeeping",
+      rows: [
+        { label: "Clean sheets", keys: ["cleanSheets", "clean_sheets"] },
+        { label: "Saves", keys: ["savesMade"] },
+        { label: "Saves from penalty", keys: ["savesFromPenalty"] },
+        { label: "Goals conceded", keys: ["goalsConceded"] },
+        { label: "Penalties saved", keys: ["penaltiesSaved"] },
+      ],
+    },
+    {
+      title: "Appearances & discipline",
+      rows: [
+        { label: "Appearances", keys: ["appearances"] },
+        { label: "Minutes", keys: ["timePlayed"] },
+        { label: "Yellow cards", keys: ["yellowCards"] },
+        { label: "Red cards", keys: ["totalRedCards", "straightRedCards"] },
+        { label: "Fouls conceded", keys: ["totalFoulsConceded"] },
+        { label: "Penalties won", keys: ["foulWonPenalty"] },
+      ],
+    },
   ];
-  const hasStats = statRows.some((s) => num(p.stats, ...s.keys) != null);
+  const groups = STAT_GROUPS.map((g) => ({
+    title: g.title,
+    rows: g.rows.map((r) => ({ label: r.label, value: val(r.keys, r.dec) })).filter((r) => r.value != null),
+  })).filter((g) => g.rows.length);
 
   const personLd = {
     "@context": "https://schema.org",
@@ -108,23 +162,23 @@ export default async function PlayerPage({ params }: { params: Params }) {
           </table>
         </section>
 
-        <section className="card" style={{ padding: "1rem" }}>
-          <h2 style={{ fontSize: "1.05rem", fontWeight: 800, marginTop: 0 }}>
-            {seasonLabel(SEASON)} stats
-          </h2>
-          <table className="stat">
-            <tbody>
-              {statRows.map((s) => (
-                <tr key={s.label}>
-                  <td style={{ color: "var(--muted)" }}>{s.label}</td>
-                  <td style={{ textAlign: "right", fontWeight: 700 }}>{num(p.stats, ...s.keys) ?? "—"}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {!hasStats && <p style={{ color: "var(--muted)", fontSize: ".85rem" }}>No stats recorded this season.</p>}
-        </section>
+        {groups.map((g) => (
+          <section key={g.title} className="card" style={{ padding: "1rem" }}>
+            <h2 style={{ fontSize: "1.05rem", fontWeight: 800, marginTop: 0 }}>{g.title}</h2>
+            <table className="stat">
+              <tbody>
+                {g.rows.map((r) => (
+                  <tr key={r.label}>
+                    <td style={{ color: "var(--muted)" }}>{r.label}</td>
+                    <td style={{ textAlign: "right", fontWeight: 700 }}>{r.value}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </section>
+        ))}
       </div>
+      {groups.length === 0 && <p style={{ color: "var(--muted)", fontSize: ".85rem" }}>No {seasonLabel(SEASON)} stats recorded for this player.</p>}
     </div>
   );
 }

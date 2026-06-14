@@ -13,9 +13,17 @@ export interface HistPlayer {
   a: number;
   apps: number;
   cs: number;
-  tk?: number; // tackles won
-  intc?: number; // interceptions
-  sv?: number; // saves (GK)
+  mins?: number;
+  // attacking
+  sh?: number; sot?: number; xg?: number; xa?: number; kp?: number; hw?: number; off?: number;
+  // passing
+  pas?: number; cr?: number; tb?: number;
+  // defending
+  tk?: number; tkl?: number; intc?: number; clr?: number; blk?: number; rec?: number; aer?: number;
+  // goalkeeping
+  sv?: number; svp?: number; gc?: number;
+  // discipline
+  yc?: number; rc?: number;
   rating: number;
 }
 
@@ -40,7 +48,7 @@ let indexCache: HistoryIndex | null = null;
 const seasonCache = new Map<string, Record<string, HistPlayer[]>>();
 
 // Bump when the dataset/calibration changes so cached files are re-fetched.
-const DATA_VERSION = "3";
+const DATA_VERSION = "4";
 
 export async function loadHistoryIndex(): Promise<HistoryIndex> {
   if (indexCache) return indexCache;

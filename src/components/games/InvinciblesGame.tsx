@@ -13,6 +13,7 @@ import { recordScore } from "@/lib/progress";
 import { playSpin, playSelect, playWin, isMuted, setMuted } from "@/lib/sound";
 import Confetti from "@/components/Confetti";
 import ScoreSubmit from "@/components/games/ScoreSubmit";
+import ShareTeam from "@/components/games/ShareTeam";
 
 const GAME = "invincibles";
 const badge = (id: string) => `https://resources.premierleague.com/premierleague25/badges/${id}.svg`;
@@ -52,9 +53,10 @@ function statLine(p: HistPlayer): string {
 // position-appropriate stats shown in the modal
 function modalStats(p: HistPlayer): [string, string | number][] {
   const pos = natOf(p);
-  if (pos === "GK") return [["Rating", p.rating.toFixed(1)], ["Clean sheets", p.cs], ["Saves", p.sv ?? 0], ["Apps", p.apps]];
-  if (pos === "DEF") return [["Rating", p.rating.toFixed(1)], ["Clean sheets", p.cs], ["Tackles", p.tk ?? 0], ["Intc", p.intc ?? 0], ["Apps", p.apps]];
-  return [["Rating", p.rating.toFixed(1)], ["Goals", p.g], ["Assists", p.a], ["Apps", p.apps], ["CS", p.cs]];
+  if (pos === "GK") return [["Rating", p.rating.toFixed(1)], ["Clean sheets", p.cs], ["Saves", p.sv ?? 0], ["Pen saves", p.svp ?? 0], ["Conceded", p.gc ?? 0], ["Apps", p.apps]];
+  if (pos === "DEF") return [["Rating", p.rating.toFixed(1)], ["Clean sheets", p.cs], ["Tackles", p.tk ?? 0], ["Intc", p.intc ?? 0], ["Clears", p.clr ?? 0], ["Aerials", p.aer ?? 0], ["Apps", p.apps]];
+  if (pos === "MID") return [["Rating", p.rating.toFixed(1)], ["Goals", p.g], ["Assists", p.a], ["Chances", p.kp ?? 0], ["Passes", p.pas ?? 0], ["Tackles", p.tk ?? 0], ["Apps", p.apps]];
+  return [["Rating", p.rating.toFixed(1)], ["Goals", p.g], ["Assists", p.a], ["Shots", p.sh ?? 0], ["On tgt", p.sot ?? 0], ["Apps", p.apps]];
 }
 
 type Mode = "five" | "full" | "cap";
@@ -405,7 +407,7 @@ export default function InvinciblesGame() {
 
           {overBudget && <div style={{ color: "var(--danger)", fontWeight: 700, textAlign: "center" }}>£{spend - (meta.cap ?? 0)}m over budget — remove a player or pick cheaper ones.</div>}
           {rating > 0 && !result && <div style={{ textAlign: "center", color: t.color, fontWeight: 700 }}>{t.label} side · {formation?.label}</div>}
-          {result && <ResultPanel result={result} rating={rating} mode={mode} />}
+          {result && <ResultPanel result={result} rating={rating} mode={mode} squad={squad} />}
         </>
       )}
 
@@ -461,7 +463,7 @@ function PlayerModal({ v, openSlots, year, team, onAdd, onRemove, onClose }: {
             <div style={{ color: "var(--muted)", fontSize: ".85rem" }}>{POS_NAME[natOf(p)]}{p.nat ? ` · ${p.nat}` : ""}{age ? ` · ${age}y` : ""}{p.shirt ? ` · #${p.shirt}` : ""}</div>
           </div>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: `repeat(${stats.length},1fr)`, gap: 6, margin: "1rem 0" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(62px,1fr))", gap: 6, margin: "1rem 0" }}>
           {stats.map(([l, val]) => (
             <div key={l} style={{ background: "var(--panel-2)", borderRadius: 8, padding: ".5rem .3rem", textAlign: "center" }}>
               <div style={{ fontWeight: 900, color: "var(--accent)" }}>{val}</div>
@@ -487,7 +489,7 @@ function PlayerModal({ v, openSlots, year, team, onAdd, onRemove, onClose }: {
   );
 }
 
-function ResultPanel({ result, rating, mode }: { result: SeasonResult; rating: number; mode: Mode }) {
+function ResultPanel({ result, rating, mode, squad }: { result: SeasonResult; rating: number; mode: Mode; squad: Slot[] }) {
   const story = result.story;
   const W = story.filter((g) => g.result === "W").length;
   const D = story.filter((g) => g.result === "D").length;
@@ -496,10 +498,14 @@ function ResultPanel({ result, rating, mode }: { result: SeasonResult; rating: n
   const perfect = L === 0 && D === 0;
   const inv = result.invinciblePct;
   const invLabel = inv >= 1 ? `${inv.toFixed(1)}%` : inv >= 0.05 ? `${inv.toFixed(2)}%` : "<0.05%";
-  const share = () => {
-    const txt = `My ${MODE_META[mode].label} Invincibles XI (${rating.toFixed(1)}): ${W}W ${D}D ${L}L${perfect ? " — PERFECT SEASON! 🌟" : unbeaten ? " — INVINCIBLE! 🏆" : ""}\nfootballinvincibles.com/games/invincibles`;
-    navigator.clipboard?.writeText(txt).catch(() => {});
-  };
+  const shareTitle = perfect ? "PERFECT SEASON!" : unbeaten ? "INVINCIBLE!" : `${L} DEFEAT${L === 1 ? "" : "S"}`;
+  const sections: [SlotPos, string][] = [["GK", "Goalkeeper"], ["DEF", "Defence"], ["MID", "Midfield"], ["FWD", "Attack"], ["SUB", "Bench"]];
+  const shareLines = sections
+    .map(([pos, label]) => ({
+      label,
+      players: squad.filter((s) => s.pos === pos && s.player).map((s) => ({ name: s.player!.name, rating: Math.round(effRating(s.player!, s.pos)) })),
+    }))
+    .filter((l) => l.players.length);
   return (
     <div className="card pop" style={{ padding: "1.25rem", display: "grid", gap: 14 }}>
       {unbeaten && <Confetti />}
@@ -519,8 +525,8 @@ function ResultPanel({ result, rating, mode }: { result: SeasonResult; rating: n
         </div>
       </div>
       <ScoreSubmit entries={unbeaten ? [{ game: "invincibles", score: W * 3 + D }, { game: "undefeated", score: W * 3 + D }] : [{ game: "invincibles", score: W * 3 + D }]} label={unbeaten ? "Post to the Wall" : "Submit score"} />
-      <div style={{ display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
-        <button className="btn btn-primary" onClick={share}>📋 Share</button>
+      <ShareTeam title={shareTitle} record={`${W}W ${D}D ${L}L · ${W * 3 + D} pts`} rating={rating} mode={MODE_META[mode].label} lines={shareLines} gold={unbeaten} />
+      <div style={{ display: "flex", justifyContent: "center" }}>
         <a className="btn" href="/leaderboard">🏆 Hall of Fame</a>
       </div>
     </div>

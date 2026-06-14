@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Script from "next/script";
 import "./globals.css";
-import SisterSites from "@/components/SisterSites";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
 import JsonLd from "@/components/JsonLd";
@@ -86,9 +85,18 @@ export default function RootLayout({
   };
   return (
     <html lang="en">
+      <head>
+        {/* Google AdSense — static tag so the AdSense crawler can verify the site */}
+        {/* eslint-disable-next-line @next/next/no-sync-scripts */}
+        <script
+          async
+          src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${AD_CLIENT}`}
+          crossOrigin="anonymous"
+        />
+        <meta name="google-adsense-account" content={AD_CLIENT} />
+      </head>
       <body>
         <JsonLd data={orgLd} />
-        <SisterSites active="football" />
         <SiteHeader />
         <main className="container-x" style={{ paddingTop: "1.5rem", minHeight: "70dvh" }}>
           {children}
@@ -97,14 +105,6 @@ export default function RootLayout({
           <AdUnit slot={AD_SLOTS.inline} />
         </div>
         <SiteFooter />
-        {/* Google AdSense loader (enables Auto Ads + manual units) */}
-        <Script
-          id="adsbygoogle-init"
-          async
-          src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${AD_CLIENT}`}
-          crossOrigin="anonymous"
-          strategy="afterInteractive"
-        />
         {/* Cloudflare Web Analytics */}
         <Script
           src="https://static.cloudflareinsights.com/beacon.min.js"

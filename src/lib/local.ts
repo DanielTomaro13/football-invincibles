@@ -31,8 +31,41 @@ export interface StandingEntry {
   };
 }
 
+/** Current matchweek = the latest one in the played fixtures. */
+export function currentMatchweek(): number {
+  return Math.max(0, ...(fixturesJson as any).matches.map((m: any) => m.mw));
+}
+
+/**
+ * League table built from the matches actually played (up to the latest
+ * matchweek), so the standings stay consistent with the fixtures/results shown
+ * rather than implying a finished 38-game season.
+ */
 export function getStandings(): StandingEntry[] {
-  return ((dataset as any).standings ?? []) as StandingEntry[];
+  const tbl = new Map<string, any>();
+  const ensure = (id: string, name: string) => {
+    if (!tbl.has(id)) tbl.set(id, { id, name, played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0, points: 0 });
+  };
+  for (const m of (fixturesJson as any).matches) {
+    ensure(m.homeId, m.home);
+    ensure(m.awayId, m.away);
+    const h = tbl.get(m.homeId), a = tbl.get(m.awayId);
+    h.played++; a.played++;
+    h.gf += m.hs; h.ga += m.as; a.gf += m.as; a.ga += m.hs;
+    if (m.hs > m.as) { h.won++; h.points += 3; a.lost++; }
+    else if (m.hs < m.as) { a.won++; a.points += 3; h.lost++; }
+    else { h.drawn++; a.drawn++; h.points++; a.points++; }
+  }
+  const arr = [...tbl.values()].sort(
+    (x, y) => y.points - x.points || (y.gf - y.ga) - (x.gf - x.ga) || y.gf - x.gf || x.name.localeCompare(y.name)
+  );
+  return arr.map((t, i) => ({
+    team: { id: t.id, name: t.name, shortName: t.name, abbr: "" },
+    overall: {
+      position: i + 1, played: t.played, won: t.won, drawn: t.drawn, lost: t.lost,
+      goalsFor: t.gf, goalsAgainst: t.ga, points: t.points, startingPosition: i + 1,
+    },
+  }));
 }
 
 export interface LeaderRow {

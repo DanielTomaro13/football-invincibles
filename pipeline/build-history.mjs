@@ -126,10 +126,35 @@ async function buildSeason(year) {
         g: Math.round(num(st, "goals")),
         a: Math.round(num(st, "goalAssists", "goal_assists")),
         apps: Math.round(num(st, "appearances")),
+        mins: Math.round(num(st, "timePlayed")),
         cs: Math.round(num(st, "cleanSheets", "clean_sheets")),
+        // attacking
+        sh: Math.round(num(st, "totalShots", "total_shots")),
+        sot: Math.round(num(st, "shotsOnTargetIncGoals")),
+        xg: Math.round(num(st, "expectedGoals") * 10) / 10,
+        xa: Math.round(num(st, "expectedAssists") * 10) / 10,
+        kp: Math.round(num(st, "keyPassesAttemptAssists")),
+        hw: Math.round(num(st, "hitWoodwork")),
+        off: Math.round(num(st, "offsides")),
+        // passing
+        pas: Math.round(num(st, "totalPasses", "total_passes")),
+        cr: Math.round(num(st, "successfulCrossesOpenPlay")),
+        tb: Math.round(num(st, "throughBalls")),
+        // defending
         tk: Math.round(num(st, "tacklesWon")),
+        tkl: Math.round(num(st, "totalTackles")),
         intc: Math.round(num(st, "interceptions")),
+        clr: Math.round(num(st, "totalClearances")),
+        blk: Math.round(num(st, "blocks", "blockedShots")),
+        rec: Math.round(num(st, "recoveries")),
+        aer: Math.round(num(st, "aerialDuelsWon")),
+        // goalkeeping
         sv: Math.round(num(st, "savesMade")),
+        svp: Math.round(num(st, "savesFromPenalty")),
+        gc: Math.round(num(st, "goalsConceded")),
+        // discipline
+        yc: Math.round(num(st, "yellowCards")),
+        rc: Math.round(num(st, "totalRedCards", "straightRedCards")),
         _c: composite(p.position, st),
         teamId: team.id,
       };

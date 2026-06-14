@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import StandingsTable from "@/components/StandingsTable";
 import JsonLd from "@/components/JsonLd";
+import { currentMatchweek } from "@/lib/local";
 import { DEFAULT_COMPETITION, COMPETITIONS, seasonLabel } from "@/lib/competitions";
 import { pageMeta, breadcrumbJsonLd } from "@/lib/seo";
 
@@ -22,7 +23,7 @@ export default function TablesPage() {
           {comp.name} Table
         </h1>
         <p style={{ color: "var(--muted)", margin: 0 }}>
-          {seasonLabel(comp.currentSeason)} season standings · updated live.
+          {seasonLabel(comp.currentSeason)} standings · after {currentMatchweek()} matchweeks.
         </p>
       </div>
 
