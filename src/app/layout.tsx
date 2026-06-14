@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Script from "next/script";
 import "./globals.css";
+import SisterSites from "@/components/SisterSites";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
 import JsonLd from "@/components/JsonLd";
@@ -97,6 +98,7 @@ export default function RootLayout({
       </head>
       <body>
         <JsonLd data={orgLd} />
+        <SisterSites active="football" />
         <SiteHeader />
         <main className="container-x" style={{ paddingTop: "1.5rem", minHeight: "70dvh" }}>
           {children}
