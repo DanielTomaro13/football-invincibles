@@ -4,6 +4,7 @@ import Link from "next/link";
 import { topScores, type ScoreEntry } from "@/lib/leaderboard";
 import { useCompetition } from "@/components/CompetitionProvider";
 import LeagueSwitch from "@/components/LeagueSwitch";
+import DailyLeaderboard from "@/components/DailyLeaderboard";
 
 export default function HomeLeaderboard() {
   const { comp } = useCompetition();
@@ -21,6 +22,7 @@ export default function HomeLeaderboard() {
         <LeagueSwitch compact />
       </div>
       <div style={{ display: "grid", gap: 16, gridTemplateColumns: "repeat(auto-fit,minmax(280px,1fr))" }}>
+        <DailyLeaderboard />
         <Board
           title={`🛡️ ${comp.shortName} Invincibles Wall`}
           subtitle="Managers who went a season unbeaten"

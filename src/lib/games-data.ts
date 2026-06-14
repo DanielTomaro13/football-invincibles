@@ -44,6 +44,9 @@ export async function loadGamesData(): Promise<GamesData> {
   return res.json();
 }
 
+/** Today's UTC date key (YYYY-MM-DD) — the same for everyone, used for daily boards. */
+export const dailyDateKey = () => new Date().toISOString().slice(0, 10);
+
 /** Deterministic daily seed so "today's" puzzles are the same for everyone. */
 export function dailySeed(salt = ""): number {
   const d = new Date();

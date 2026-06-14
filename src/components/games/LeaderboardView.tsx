@@ -4,6 +4,7 @@ import { topScores, isGlobal, type ScoreEntry } from "@/lib/leaderboard";
 import { getName, setName as persistName, getDaily, getScore } from "@/lib/progress";
 import { useCompetition } from "@/components/CompetitionProvider";
 import LeagueSwitch from "@/components/LeagueSwitch";
+import DailyLeaderboard from "@/components/DailyLeaderboard";
 
 // "invincibles" is per-competition (resolved at fetch time); the rest are global.
 const BOARDS = [
@@ -79,6 +80,12 @@ export default function LeaderboardView() {
           <code>NEXT_PUBLIC_LEADERBOARD_URL</code> (see <code>/worker</code>) to go global.
         </p>
       )}
+
+      {/* Today's Daily Challenge (per competition) */}
+      <section>
+        <h2 style={{ fontSize: "1.4rem", fontWeight: 900, marginBottom: 8 }}>🗓️ Daily Challenge</h2>
+        <DailyLeaderboard limit={20} />
+      </section>
 
       {/* The Invincibles Wall — unbeaten seasons (per competition) */}
       <section>

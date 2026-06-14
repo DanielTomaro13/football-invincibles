@@ -10,6 +10,7 @@ import {
 } from "@/lib/history";
 import { simulateSeason, buildFixtures, type SeasonResult } from "@/lib/invincible-sim";
 import { recordScore } from "@/lib/progress";
+import { dailySeed, rng, dailyDateKey } from "@/lib/games-data";
 import { playSpin, playSelect, playWin, isMuted, setMuted } from "@/lib/sound";
 import { useCompetition } from "@/components/CompetitionProvider";
 import LeagueSwitch from "@/components/LeagueSwitch";
@@ -63,12 +64,21 @@ function modalStats(p: HistPlayer): [string, string | number][] {
   return [["Rating", p.rating.toFixed(1)], ["Goals", p.g], ["Assists", p.a], ["Shots", p.sh ?? 0], ["On tgt", p.sot ?? 0], ["Apps", p.apps]];
 }
 
-type Mode = "five" | "full" | "cap";
+type Mode = "five" | "full" | "cap" | "daily";
 const MODE_META: Record<Mode, { label: string; sub: string; respins: number; cap?: number }> = {
   five: { label: "5-a-side", sub: "5 starters + 1 sub", respins: 3 },
   full: { label: "Full squad", sub: "11 + 5 subs · pick a formation", respins: 5 },
   cap: { label: "Salary cap", sub: "16 players · £450m budget", respins: 5, cap: 450 },
+  daily: { label: "Daily", sub: "Same teams for everyone · 1 try", respins: 0 },
 };
+
+const dailyStoreKey = (slug: string) => `fi.dailyinv.${slug}.${dailyDateKey()}`;
+function getDailyPlayed(slug: string): { W: number; D: number; L: number; unbeaten: boolean } | null {
+  try { return JSON.parse(localStorage.getItem(dailyStoreKey(slug)) || "null"); } catch { return null; }
+}
+function setDailyPlayed(slug: string, r: object) {
+  try { localStorage.setItem(dailyStoreKey(slug), JSON.stringify(r)); } catch {}
+}
 
 interface Formation { label: string; def: number; mid: number; fwd: number; }
 const FORMATIONS: Formation[] = [
@@ -138,6 +148,9 @@ export default function InvinciblesGame() {
 
   const prefixRef = useRef(prefix);
   const quickFiveRef = useRef(typeof window !== "undefined" && new URLSearchParams(window.location.search).get("mode") === "five");
+  const dailyRef = useRef(false); // spins use the seeded daily RNG while true
+  const dailyRngRef = useRef<() => number>(() => Math.random());
+  const [dailyDone, setDailyDone] = useState<{ W: number; D: number; L: number; unbeaten: boolean } | null>(null);
 
   // ---- spin with slot-machine animation + sound ----
   const spin = useCallback(async () => {
@@ -149,8 +162,10 @@ export default function InvinciblesGame() {
     playSpin(720);
     const flat = idx.seasons.flatMap((s) => s.teams.map((t) => ({ year: s.year, name: t.name, id: t.id, badge: t.badge ?? null })));
     const iv = setInterval(() => setReel(flat[Math.floor(Math.random() * flat.length)]), 60);
-    const season = idx.seasons[Math.floor(Math.random() * idx.seasons.length)];
-    const tm = season.teams[Math.floor(Math.random() * season.teams.length)];
+    // daily mode draws from a date-seeded RNG so every player gets the same teams
+    const rand = dailyRef.current ? dailyRngRef.current : Math.random;
+    const season = idx.seasons[Math.floor(rand() * idx.seasons.length)];
+    const tm = season.teams[Math.floor(rand() * season.teams.length)];
     const rosters = await loadSeasonRosters(season.year, prefix);
     await new Promise((r) => setTimeout(r, 680));
     clearInterval(iv);
@@ -167,6 +182,8 @@ export default function InvinciblesGame() {
   // (re)load when the competition changes — and fully reset the build
   useEffect(() => {
     prefixRef.current = prefix;
+    dailyRef.current = false;
+    setDailyDone(null);
     setM(isMuted());
     setLoading(true);
     setMode("full");
@@ -198,6 +215,9 @@ export default function InvinciblesGame() {
   }, [prefix]);
 
   const startMode = (m: Mode) => {
+    if (m === "daily") return startDaily();
+    dailyRef.current = false;
+    setDailyDone(null);
     setMode(m);
     setSeen(new Set());
     setResult(null);
@@ -211,6 +231,29 @@ export default function InvinciblesGame() {
       setFormOptions(pick3(Math.random));
       setSquad([]);
     }
+  };
+
+  // Daily Challenge: a date-seeded 5-a-side that's identical for everyone in the
+  // selected league, one attempt per day, ranked on a daily leaderboard.
+  const startDaily = () => {
+    if (!idxRef.current) return;
+    setMode("daily");
+    setResult(null);
+    setSeen(new Set());
+    setRespins(0);
+    setFilter("ALL");
+    setFormation(FIVE);
+    setSquad(slotsFor("five", FIVE));
+    const played = getDailyPlayed(comp.slug);
+    if (played) {
+      dailyRef.current = false;
+      setDailyDone(played);
+      return;
+    }
+    setDailyDone(null);
+    dailyRngRef.current = rng(dailySeed("inv-" + comp.slug));
+    dailyRef.current = true;
+    spin();
   };
 
   const chooseFormation = (f: Formation) => {
@@ -301,14 +344,23 @@ export default function InvinciblesGame() {
     const sorted = strengths.map((s) => s.strength).sort((a, b) => a - b);
     const res = simulateSeason(rating, sorted, buildFixtures(strengths), (Math.random() * 1e9) | 0);
     setResult(res);
-    recordScore(GAME, res.story.filter((g) => g.result === "W").length * 3 + res.story.filter((g) => g.result === "D").length);
-    if (res.story.every((g) => g.result !== "L")) playWin();
+    const W = res.story.filter((g) => g.result === "W").length;
+    const D = res.story.filter((g) => g.result === "D").length;
+    const L = res.story.filter((g) => g.result === "L").length;
+    recordScore(GAME, W * 3 + D);
+    if (L === 0) playWin();
+    if (mode === "daily") {
+      // lock the attempt; the score is posted (with a name) from the result panel
+      setDailyPlayed(comp.slug, { W, D, L, unbeaten: L === 0 });
+      dailyRef.current = false;
+    }
   };
 
   if (loading) return <p style={{ color: "var(--muted)" }}>Loading seasons of history…</p>;
 
   // ---- formation chooser (full / cap, before building) ----
-  const needFormation = mode !== "five" && !formation;
+  const needFormation = mode !== "five" && mode !== "daily" && !formation;
+  const dailyLocked = mode === "daily" && !!dailyDone && !result;
 
   const filtered = roster.filter((p) => filter === "ALL" || natOf(p) === filter);
   const starterSlots = squad.map((s, i) => ({ ...s, i })).filter((s) => s.pos !== "SUB");
@@ -331,7 +383,24 @@ export default function InvinciblesGame() {
         ))}
       </div>
 
-      {needFormation ? (
+      {mode === "daily" && (
+        <div style={{ textAlign: "center", color: "var(--muted)", fontSize: ".85rem" }}>
+          🗓️ Daily Challenge — everyone in {comp.shortName} gets the same teams today. One try, no re-spins.
+        </div>
+      )}
+
+      {dailyLocked ? (
+        <div className="card pop" style={{ padding: "1.5rem", textAlign: "center", display: "grid", gap: 10, borderColor: "var(--gold)" }}>
+          <h2 style={{ margin: 0 }}>✅ You&apos;ve played today&apos;s Daily</h2>
+          <p style={{ color: "var(--muted)", margin: 0 }}>
+            {comp.shortName} · {dailyDone!.W}W {dailyDone!.D}D {dailyDone!.L}L{dailyDone!.unbeaten ? " — unbeaten! 🏆" : ""}. New teams tomorrow.
+          </p>
+          <div style={{ display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
+            <a className="btn" href="/leaderboard">🏆 Today&apos;s leaderboard</a>
+            <button className="btn" onClick={() => startMode("full")}>Play the full game</button>
+          </div>
+        </div>
+      ) : needFormation ? (
         <div className="card" style={{ padding: "1.25rem", display: "grid", gap: 12 }}>
           <h2 style={{ margin: 0, fontSize: "1.15rem" }}>Pick your formation</h2>
           <p style={{ margin: 0, color: "var(--muted)", fontSize: ".88rem" }}>Three at random — your choice sets the shape of your XI.</p>
@@ -368,9 +437,11 @@ export default function InvinciblesGame() {
                     )
                   )}
                 </div>
-                <button className="btn" onClick={reSpin} disabled={respins <= 0 || spinning} style={{ marginLeft: "auto" }}>
-                  🎰 Re-spin ({respins})
-                </button>
+                {mode !== "daily" && (
+                  <button className="btn" onClick={reSpin} disabled={respins <= 0 || spinning} style={{ marginLeft: "auto" }}>
+                    🎰 Re-spin ({respins})
+                  </button>
+                )}
               </div>
 
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
@@ -444,7 +515,7 @@ export default function InvinciblesGame() {
 
           {overBudget && <div style={{ color: "var(--danger)", fontWeight: 700, textAlign: "center" }}>£{spend - (meta.cap ?? 0)}m over budget — remove a player or pick cheaper ones.</div>}
           {rating > 0 && !result && <div style={{ textAlign: "center", color: t.color, fontWeight: 700 }}>{t.label} side · {formation?.label}</div>}
-          {result && <ResultPanel result={result} rating={rating} mode={mode} squad={squad} compSlug={comp.slug} compName={comp.shortName} />}
+          {result && <ResultPanel result={result} rating={rating} mode={mode} squad={squad} compSlug={comp.slug} compName={comp.shortName} daily={mode === "daily"} />}
         </>
       )}
 
@@ -526,7 +597,7 @@ function PlayerModal({ v, openSlots, year, team, onAdd, onRemove, onClose }: {
   );
 }
 
-function ResultPanel({ result, rating, mode, squad, compSlug, compName }: { result: SeasonResult; rating: number; mode: Mode; squad: Slot[]; compSlug: string; compName: string }) {
+function ResultPanel({ result, rating, mode, squad, compSlug, compName, daily }: { result: SeasonResult; rating: number; mode: Mode; squad: Slot[]; compSlug: string; compName: string; daily?: boolean }) {
   const story = result.story;
   const W = story.filter((g) => g.result === "W").length;
   const D = story.filter((g) => g.result === "D").length;
@@ -561,7 +632,11 @@ function ResultPanel({ result, rating, mode, squad, compSlug, compName }: { resu
           {story.map((g, i) => <span key={i} title={`MW${g.round}: ${g.home ? "vs" : "@"} ${g.oppName} — ${g.result}`} style={{ width: 22, height: 22, display: "grid", placeItems: "center", borderRadius: 5, fontSize: ".62rem", fontWeight: 800, color: g.result === "L" ? "#fff" : "#04220f", background: g.result === "W" ? "var(--accent)" : g.result === "D" ? "var(--gold)" : "var(--danger)" }}>{g.result}</span>)}
         </div>
       </div>
-      <ScoreSubmit entries={unbeaten ? [{ game: `invincibles:${compSlug}`, score: W * 3 + D }, { game: `undefeated:${compSlug}`, score: W * 3 + D }] : [{ game: `invincibles:${compSlug}`, score: W * 3 + D }]} label={unbeaten ? `Post to the ${compName} Wall` : "Submit score"} />
+      {daily ? (
+        <ScoreSubmit entries={[{ game: `daily:${compSlug}:${dailyDateKey()}`, score: W * 3 + D }]} label="Post to today's leaderboard" />
+      ) : (
+        <ScoreSubmit entries={unbeaten ? [{ game: `invincibles:${compSlug}`, score: W * 3 + D }, { game: `undefeated:${compSlug}`, score: W * 3 + D }] : [{ game: `invincibles:${compSlug}`, score: W * 3 + D }]} label={unbeaten ? `Post to the ${compName} Wall` : "Submit score"} />
+      )}
       <ShareTeam title={shareTitle} record={`${W}W ${D}D ${L}L · ${W * 3 + D} pts`} rating={rating} mode={MODE_META[mode].label} lines={shareLines} gold={unbeaten} />
       <div style={{ display: "flex", justifyContent: "center" }}>
         <a className="btn" href="/leaderboard">🏆 Hall of Fame</a>
