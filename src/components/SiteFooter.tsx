@@ -37,7 +37,7 @@ export default function SiteFooter() {
           </nav>
           <nav style={{ display: "grid", gap: 6, fontSize: ".85rem" }}>
             <strong style={{ color: "var(--text)" }}>Site</strong>
-            <Link href="/about">About</Link>
+            <Link href="/leaderboard">Hall of Fame</Link>
             <Link href="/competitions">Competitions</Link>
           </nav>
         </div>

@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useMemo, useState, useCallback, useRef } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import {
   loadHistoryIndex,
   loadSeasonRosters,
@@ -19,19 +19,58 @@ export function salaryOf(rating: number): number {
   return Math.round(Math.pow(Math.max(0, rating - 58) / 42, 2.6) * 78 + 1);
 }
 
+// ---- positions & eligibility ----
+type Pos = "GK" | "DEF" | "MID" | "FWD";
+type SlotPos = Pos | "SUB";
+const SHORT: Record<string, Pos> = { Goalkeeper: "GK", Defender: "DEF", Midfielder: "MID", Forward: "FWD" };
+// which positions a player can fill — natural first, then adjacent
+const ELIG: Record<Pos, Pos[]> = {
+  GK: ["GK"],
+  DEF: ["DEF", "MID"],
+  MID: ["MID", "DEF", "FWD"],
+  FWD: ["FWD", "MID"],
+};
+const OUT_OF_POS = 0.88; // penalty for playing a secondary position
+
+const natOf = (p: HistPlayer): Pos => SHORT[p.pos] ?? "MID";
+const eligOf = (p: HistPlayer): Pos[] => ELIG[natOf(p)] ?? ["MID"];
+// versatility: more positions => small boost, capped at 1.15x
+const vBoost = (p: HistPlayer): number => 1 + Math.min(0.15, (eligOf(p).length - 1) * 0.075);
+const canFill = (p: HistPlayer, slot: SlotPos): boolean => slot === "SUB" || eligOf(p).includes(slot);
+function effRating(p: HistPlayer, slot: SlotPos): number {
+  const boost = vBoost(p);
+  const base = slot === "SUB" || slot === natOf(p) ? p.rating * boost : p.rating * OUT_OF_POS * boost;
+  return Math.min(99, base); // keep effective ratings on the 0–99 scale
+}
+
 type Mode = "five" | "full" | "cap";
-const MODES: Record<Mode, { label: string; sub: string; starters: number; subs: number; cap?: number }> = {
-  five: { label: "5-a-side", sub: "5 starters + 1 sub", starters: 5, subs: 1 },
-  full: { label: "Full squad", sub: "11 starters + 5 subs", starters: 11, subs: 5 },
-  cap: { label: "Salary cap", sub: "16 players · £400m budget", starters: 11, subs: 5, cap: 400 },
+const MODES: Record<Mode, { label: string; sub: string; slots: SlotPos[]; cap?: number }> = {
+  five: { label: "5-a-side", sub: "5 starters + 1 sub", slots: ["GK", "DEF", "MID", "MID", "FWD", "SUB"] },
+  full: {
+    label: "Full squad",
+    sub: "11 starters + 5 subs",
+    slots: ["GK", "DEF", "DEF", "DEF", "DEF", "MID", "MID", "MID", "FWD", "FWD", "FWD", "SUB", "SUB", "SUB", "SUB", "SUB"],
+  },
+  cap: {
+    label: "Salary cap",
+    sub: "16 players · £400m",
+    slots: ["GK", "DEF", "DEF", "DEF", "DEF", "MID", "MID", "MID", "FWD", "FWD", "FWD", "SUB", "SUB", "SUB", "SUB", "SUB"],
+    cap: 400,
+  },
 };
 const CLUB_RESPINS = 3;
 const YEAR_RESPINS = 3;
-const POS_ORDER = ["Goalkeeper", "Defender", "Midfielder", "Forward"];
+const POS_ROWS: Pos[] = ["GK", "DEF", "MID", "FWD"];
+const FILTERS: ("ALL" | Pos)[] = ["ALL", "GK", "DEF", "MID", "FWD"];
 
 interface Pick extends HistPlayer {
   fromYear: string;
   fromTeam: string;
+  slot: SlotPos;
+}
+interface Slot {
+  pos: SlotPos;
+  player: Pick | null;
 }
 
 function tier(r: number) {
@@ -43,6 +82,8 @@ function tier(r: number) {
   return { label: "Battling drop", color: "#ff5d73" };
 }
 
+const newSquad = (m: Mode): Slot[] => MODES[m].slots.map((pos) => ({ pos, player: null }));
+
 export default function InvinciblesGame() {
   const [mode, setMode] = useState<Mode>("full");
   const [index, setIndex] = useState<HistoryIndex | null>(null);
@@ -50,31 +91,29 @@ export default function InvinciblesGame() {
   const [year, setYear] = useState<string>("");
   const [team, setTeam] = useState<SeasonTeam | null>(null);
   const [roster, setRoster] = useState<HistPlayer[]>([]);
-  const [squad, setSquad] = useState<Pick[]>([]);
+  const [squad, setSquad] = useState<Slot[]>(() => newSquad("full"));
+  const [filter, setFilter] = useState<"ALL" | Pos>("ALL");
   const [clubRe, setClubRe] = useState(CLUB_RESPINS);
   const [yearRe, setYearRe] = useState(YEAR_RESPINS);
   const [result, setResult] = useState<SeasonResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [spinning, setSpinning] = useState(false);
-  const seenIds = useRef<Set<number>>(new Set());
+  const [viewing, setViewing] = useState<{ p: HistPlayer; source: "roster" | "squad"; slotIndex?: number } | null>(null);
+  const [seen, setSeen] = useState<Set<number>>(new Set());
 
   const cfg = MODES[mode];
-  const total = cfg.starters + cfg.subs;
 
-  const spin = useCallback(
-    async (idx: HistoryIndex, keepYear: string | null) => {
-      setSpinning(true);
-      const yr = keepYear ?? idx.seasons[Math.floor(Math.random() * idx.seasons.length)].year;
-      const season = idx.seasons.find((s) => s.year === yr)!;
-      const tm = season.teams[Math.floor(Math.random() * season.teams.length)];
-      const rosters = await loadSeasonRosters(yr);
-      setYear(yr);
-      setTeam(tm);
-      setRoster(rosters[tm.id] ?? []);
-      setSpinning(false);
-    },
-    []
-  );
+  const spin = useCallback(async (idx: HistoryIndex, keepYear: string | null) => {
+    setSpinning(true);
+    const yr = keepYear ?? idx.seasons[Math.floor(Math.random() * idx.seasons.length)].year;
+    const season = idx.seasons.find((s) => s.year === yr)!;
+    const tm = season.teams[Math.floor(Math.random() * season.teams.length)];
+    const rosters = await loadSeasonRosters(yr);
+    setYear(yr);
+    setTeam(tm);
+    setRoster(rosters[tm.id] ?? []);
+    setSpinning(false);
+  }, []);
 
   useEffect(() => {
     Promise.all([loadHistoryIndex(), loadStrengths()]).then(([idx, st]) => {
@@ -85,59 +124,79 @@ export default function InvinciblesGame() {
     });
   }, [spin]);
 
-  const full = squad.length >= total;
+  const full = squad.every((s) => s.player);
 
-  const pick = (p: HistPlayer) => {
-    if (full || !index || seenIds.current.has(p.id)) return;
-    seenIds.current.add(p.id);
-    setSquad((s) => [...s, { ...p, fromYear: year, fromTeam: team?.short ?? "" }]);
+  // distinct open slot positions a player could fill right now
+  const openSlotsFor = useCallback(
+    (p: HistPlayer): SlotPos[] => {
+      const open = new Set<SlotPos>();
+      for (const s of squad) if (!s.player && canFill(p, s.pos)) open.add(s.pos);
+      return [...open].sort((a, b) => (a === natOf(p) ? -1 : b === natOf(p) ? 1 : a === "SUB" ? 1 : -1));
+    },
+    [squad]
+  );
+
+  const place = (p: HistPlayer, slotPos: SlotPos) => {
+    if (!index || seen.has(p.id)) return;
+    const i = squad.findIndex((s) => !s.player && s.pos === slotPos);
+    if (i === -1) return;
+    const next = [...squad];
+    next[i] = { pos: slotPos, player: { ...p, fromYear: year, fromTeam: team?.short ?? "", slot: slotPos } };
+    setSquad(next);
+    setSeen((s) => new Set(s).add(p.id));
     setResult(null);
-    if (squad.length + 1 < total) spin(index, null); // free fresh spin for the next pick
+    setViewing(null);
+    if (!next.every((s) => s.player)) spin(index, null);
   };
 
-  const respinClub = () => {
-    if (clubRe <= 0 || !index) return;
-    setClubRe((n) => n - 1);
-    spin(index, year);
-  };
-  const respinYear = () => {
-    if (yearRe <= 0 || !index) return;
-    setYearRe((n) => n - 1);
-    spin(index, null);
-  };
-  const undo = () => {
-    setSquad((s) => {
-      const last = s[s.length - 1];
-      if (last) seenIds.current.delete(last.id);
-      return s.slice(0, -1);
-    });
+  const removeAt = (idx: number) => {
+    const p = squad[idx].player;
+    if (p) setSeen((s) => { const n = new Set(s); n.delete(p.id); return n; });
+    setSquad((sq) => sq.map((s, i) => (i === idx ? { ...s, player: null } : s)));
     setResult(null);
+    setViewing(null);
   };
+
+  const respinClub = () => { if (clubRe > 0 && index) { setClubRe((n) => n - 1); spin(index, year); } };
+  const respinYear = () => { if (yearRe > 0 && index) { setYearRe((n) => n - 1); spin(index, null); } };
   const reset = () => {
-    seenIds.current.clear();
-    setSquad([]);
+    setSeen(new Set());
+    setSquad(newSquad(mode));
     setClubRe(CLUB_RESPINS);
     setYearRe(YEAR_RESPINS);
     setResult(null);
     if (index) spin(index, null);
   };
+  const changeMode = (m: Mode) => {
+    setMode(m);
+    setSeen(new Set());
+    setSquad(newSquad(m));
+    setClubRe(CLUB_RESPINS);
+    setYearRe(YEAR_RESPINS);
+    setResult(null);
+  };
 
-  // weighted team rating: starters full, subs count for depth at 0.35
   const rating = useMemo(() => {
-    if (!squad.length) return 0;
-    let w = 0,
-      sum = 0;
-    squad.forEach((p, i) => {
-      const weight = i < cfg.starters ? 1 : 0.35;
-      sum += p.rating * weight;
+    let w = 0, sum = 0;
+    for (const s of squad) {
+      if (!s.player) continue;
+      const weight = s.pos === "SUB" ? 0.35 : 1;
+      sum += effRating(s.player, s.pos) * weight;
       w += weight;
-    });
-    return sum / w;
-  }, [squad, cfg.starters]);
+    }
+    return w ? sum / w : 0;
+  }, [squad]);
 
-  const spend = useMemo(() => squad.reduce((a, p) => a + salaryOf(p.rating), 0), [squad]);
+  const spend = useMemo(() => squad.reduce((a, s) => a + (s.player ? salaryOf(s.player.rating) : 0), 0), [squad]);
   const overBudget = mode === "cap" && spend > (cfg.cap ?? Infinity);
   const t = tier(rating);
+
+  // "still need" summary
+  const need = useMemo(() => {
+    const m: Record<string, number> = {};
+    for (const s of squad) if (!s.player) m[s.pos] = (m[s.pos] ?? 0) + 1;
+    return m;
+  }, [squad]);
 
   const simulate = () => {
     if (!full || !strengths.length || overBudget) return;
@@ -145,24 +204,17 @@ export default function InvinciblesGame() {
     const fixtures = buildFixtures(strengths);
     const res = simulateSeason(rating, sorted, fixtures, (Math.random() * 1e9) | 0);
     setResult(res);
-    const unbeaten = res.story.every((g) => g.result !== "L");
-    const perfect = res.story.every((g) => g.result === "W");
-    recordScore(GAME, res.story.filter((g) => g.result === "W").length * 3 + res.story.filter((g) => g.result === "D").length);
-    submitScore(GAME, res.story.filter((g) => g.result === "W").length * 3 + res.story.filter((g) => g.result === "D").length);
-    if (unbeaten) submitScore("undefeated", res.story.filter((g) => g.result === "W").length * 3 + res.story.filter((g) => g.result === "D").length);
-    void perfect;
+    const pts = res.story.filter((g) => g.result === "W").length * 3 + res.story.filter((g) => g.result === "D").length;
+    recordScore(GAME, pts);
+    submitScore(GAME, pts);
+    if (res.story.every((g) => g.result !== "L")) submitScore("undefeated", pts);
   };
 
-  function changeMode(m: Mode) {
-    setMode(m);
-    reset();
-  }
+  if (loading) return <p style={{ color: "var(--muted)" }}>Loading 16 seasons of history…</p>;
 
-  if (loading) return <p style={{ color: "var(--muted)" }}>Loading 18 seasons of history…</p>;
-
-  const starters = squad.slice(0, cfg.starters);
-  const subs = squad.slice(cfg.starters);
-  const rows = POS_ORDER.map((pos) => starters.filter((p) => p.pos === pos)).filter((r) => r.length);
+  const filtered = roster.filter((p) => filter === "ALL" || natOf(p) === filter);
+  const starterSlots = squad.map((s, i) => ({ ...s, i })).filter((s) => s.pos !== "SUB");
+  const subSlots = squad.map((s, i) => ({ ...s, i })).filter((s) => s.pos === "SUB");
 
   return (
     <div style={{ display: "grid", gap: "1.25rem" }}>
@@ -176,7 +228,7 @@ export default function InvinciblesGame() {
             style={{
               padding: ".6rem .9rem",
               cursor: "pointer",
-              flex: "1 1 160px",
+              flex: "1 1 150px",
               textAlign: "left",
               borderColor: mode === m ? "var(--accent)" : "var(--border)",
               background: mode === m ? "rgba(0,230,118,.1)" : undefined,
@@ -189,46 +241,49 @@ export default function InvinciblesGame() {
         ))}
       </div>
 
-      {/* squad pitch */}
+      {/* pitch with position slots */}
       <div
         style={{
           background: "radial-gradient(120% 100% at 50% 0%, #0e7a46 0%, #0a5e36 60%, #084c2c 100%)",
           border: "1px solid var(--border)",
           borderRadius: 18,
-          padding: "1.25rem .75rem",
+          padding: "1.1rem .6rem",
           position: "relative",
-          minHeight: 200,
         }}
       >
-        {/* subtle centre line + circle, no stripes */}
-        <div style={{ position: "absolute", top: "50%", left: 0, right: 0, height: 1, background: "rgba(255,255,255,.14)" }} />
-        <div style={{ position: "absolute", top: "50%", left: "50%", width: 84, height: 84, transform: "translate(-50%,-50%)", border: "1px solid rgba(255,255,255,.14)", borderRadius: "50%" }} />
-        <div style={{ position: "relative", display: "grid", gap: 12 }}>
-          {rows.length === 0 && (
-            <div style={{ textAlign: "center", color: "rgba(255,255,255,.7)", padding: "2rem 0" }}>
-              Pick players below to build your XI.
-            </div>
-          )}
-          {rows.map((row, i) => (
-            <div key={i} style={{ display: "flex", justifyContent: "center", gap: 8, flexWrap: "wrap" }}>
-              {row.map((p) => (
-                <PlayerChip key={p.id} p={p} />
-              ))}
-            </div>
-          ))}
+        <div style={{ position: "absolute", top: "50%", left: 0, right: 0, height: 1, background: "rgba(255,255,255,.13)" }} />
+        <div style={{ position: "absolute", top: "50%", left: "50%", width: 80, height: 80, transform: "translate(-50%,-50%)", border: "1px solid rgba(255,255,255,.13)", borderRadius: "50%" }} />
+        <div style={{ position: "relative", display: "grid", gap: 10 }}>
+          {POS_ROWS.map((P) => {
+            const row = starterSlots.filter((s) => s.pos === P);
+            if (!row.length) return null;
+            return (
+              <div key={P} style={{ display: "flex", justifyContent: "center", gap: 8, flexWrap: "wrap" }}>
+                {row.map((s) =>
+                  s.player ? (
+                    <PlayerChip key={s.i} p={s.player} onClick={() => setViewing({ p: s.player!, source: "squad", slotIndex: s.i })} />
+                  ) : (
+                    <EmptySlot key={s.i} pos={P} />
+                  )
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
 
-      {/* subs bench */}
-      {subs.length > 0 && (
+      {/* bench */}
+      {subSlots.length > 0 && (
         <div>
-          <div style={{ fontSize: ".72rem", color: "var(--muted)", textTransform: "uppercase", letterSpacing: ".05em", marginBottom: 6 }}>
-            Bench
-          </div>
+          <div style={{ fontSize: ".72rem", color: "var(--muted)", textTransform: "uppercase", letterSpacing: ".05em", marginBottom: 6 }}>Bench</div>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            {subs.map((p) => (
-              <PlayerChip key={p.id} p={p} small />
-            ))}
+            {subSlots.map((s) =>
+              s.player ? (
+                <PlayerChip key={s.i} p={s.player} small onClick={() => setViewing({ p: s.player!, source: "squad", slotIndex: s.i })} />
+              ) : (
+                <EmptySlot key={s.i} pos="SUB" small />
+              )
+            )}
           </div>
         </div>
       )}
@@ -237,7 +292,7 @@ export default function InvinciblesGame() {
       <div className="card" style={{ padding: ".8rem 1rem", display: "flex", gap: 16, alignItems: "center", flexWrap: "wrap" }}>
         <div>
           <div style={{ fontSize: ".68rem", color: "var(--muted)", textTransform: "uppercase" }}>Squad</div>
-          <div style={{ fontWeight: 800 }}>{squad.length}/{total}</div>
+          <div style={{ fontWeight: 800 }}>{squad.filter((s) => s.player).length}/{squad.length}</div>
         </div>
         <div>
           <div style={{ fontSize: ".68rem", color: "var(--muted)", textTransform: "uppercase" }}>Rating</div>
@@ -250,19 +305,16 @@ export default function InvinciblesGame() {
           </div>
         )}
         <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
-          {squad.length > 0 && !full && <button className="btn" onClick={undo}>↶ Undo</button>}
           <button className="btn" onClick={reset}>↺ Reset</button>
           {full && (
-            <button className="btn btn-primary" onClick={simulate} disabled={overBudget}>
-              ▶ Simulate season
-            </button>
+            <button className="btn btn-primary" onClick={simulate} disabled={overBudget}>▶ Simulate season</button>
           )}
         </div>
       </div>
 
       {overBudget && (
         <div style={{ color: "var(--danger)", fontWeight: 700, textAlign: "center" }}>
-          £{spend - (cfg.cap ?? 0)}m over budget — Undo and pick cheaper players.
+          £{spend - (cfg.cap ?? 0)}m over budget — remove a player or pick cheaper ones.
         </div>
       )}
 
@@ -281,81 +333,220 @@ export default function InvinciblesGame() {
               )}
             </div>
             <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
-              <button className="btn" onClick={respinClub} disabled={clubRe <= 0 || spinning}>
-                🔄 Club ({clubRe})
-              </button>
-              <button className="btn" onClick={respinYear} disabled={yearRe <= 0 || spinning}>
-                📅 Year ({yearRe})
-              </button>
+              <button className="btn" onClick={respinClub} disabled={clubRe <= 0 || spinning}>🔄 Club ({clubRe})</button>
+              <button className="btn" onClick={respinYear} disabled={yearRe <= 0 || spinning}>📅 Year ({yearRe})</button>
             </div>
           </div>
-          <p style={{ margin: 0, color: "var(--muted)", fontSize: ".85rem" }}>
-            Pick <strong>one</strong> player from this squad — they join your team rated on their {year}/{(Number(year) + 1) % 100} season.
-          </p>
-          <div style={{ display: "grid", gap: 6, gridTemplateColumns: "repeat(auto-fill,minmax(160px,1fr))", maxHeight: 320, overflowY: "auto", WebkitOverflowScrolling: "touch", overscrollBehavior: "contain" }}>
-            {roster.map((p) => (
+
+          {/* position filters + still-need hint */}
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+            {FILTERS.map((f) => (
               <button
-                key={p.id}
-                onClick={() => pick(p)}
-                disabled={seenIds.current.has(p.id)}
-                className="card"
-                style={{
-                  padding: ".5rem .6rem",
-                  display: "flex",
-                  gap: 8,
-                  alignItems: "center",
-                  cursor: seenIds.current.has(p.id) ? "not-allowed" : "pointer",
-                  opacity: seenIds.current.has(p.id) ? 0.4 : 1,
-                  textAlign: "left",
-                  color: "var(--text)",
-                }}
+                key={f}
+                onClick={() => setFilter(f)}
+                className="chip"
+                style={{ cursor: "pointer", color: filter === f ? "#04220f" : "var(--text)", background: filter === f ? "var(--accent)" : "var(--panel-2)" }}
               >
-                <span style={{ fontWeight: 900, color: "var(--accent)", minWidth: 30 }}>{p.rating.toFixed(0)}</span>
-                <span style={{ minWidth: 0 }}>
-                  <span style={{ fontWeight: 700, display: "block", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{p.name}</span>
-                  <span style={{ color: "var(--muted)", fontSize: ".72rem" }}>{p.pos.slice(0, 3)} · {p.g}G {p.a}A{mode === "cap" ? ` · £${salaryOf(p.rating)}m` : ""}</span>
-                </span>
+                {f}
               </button>
             ))}
+            <span style={{ marginLeft: "auto", fontSize: ".76rem", color: "var(--muted)" }}>
+              Still need: {Object.entries(need).map(([p, n]) => `${n} ${p}`).join(" · ") || "—"}
+            </span>
+          </div>
+
+          <p style={{ margin: 0, color: "var(--muted)", fontSize: ".85rem" }}>
+            Tap a player to view their stats and add them to a position. Versatile players (★) can fill more than one slot.
+          </p>
+
+          <div style={{ display: "grid", gap: 6, gridTemplateColumns: "repeat(auto-fill,minmax(160px,1fr))", maxHeight: 320, overflowY: "auto", WebkitOverflowScrolling: "touch", overscrollBehavior: "contain" }}>
+            {filtered.map((p) => {
+              const usable = !seen.has(p.id) && openSlotsFor(p).length > 0;
+              const versatile = eligOf(p).length > 1;
+              return (
+                <button
+                  key={p.id}
+                  onClick={() => setViewing({ p, source: "roster" })}
+                  disabled={!usable}
+                  className="card"
+                  style={{
+                    padding: ".5rem .6rem",
+                    display: "flex",
+                    gap: 8,
+                    alignItems: "center",
+                    cursor: usable ? "pointer" : "not-allowed",
+                    opacity: usable ? 1 : 0.4,
+                    textAlign: "left",
+                    color: "var(--text)",
+                  }}
+                >
+                  <span style={{ fontWeight: 900, color: "var(--accent)", minWidth: 30 }}>{p.rating.toFixed(0)}</span>
+                  <span style={{ minWidth: 0 }}>
+                    <span style={{ fontWeight: 700, display: "block", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                      {p.name} {versatile && <span title="Versatile" style={{ color: "var(--gold)" }}>★</span>}
+                    </span>
+                    <span style={{ color: "var(--muted)", fontSize: ".72rem" }}>{natOf(p)} · {p.g}G {p.a}A{mode === "cap" ? ` · £${salaryOf(p.rating)}m` : ""}</span>
+                  </span>
+                </button>
+              );
+            })}
+            {filtered.length === 0 && <p style={{ color: "var(--muted)", gridColumn: "1/-1" }}>No {filter} players in this squad — try another filter or re-spin.</p>}
           </div>
         </div>
       )}
 
-      {rating > 0 && !result && (
-        <div style={{ textAlign: "center", color: t.color, fontWeight: 700 }}>{t.label} side</div>
-      )}
+      {rating > 0 && !result && <div style={{ textAlign: "center", color: t.color, fontWeight: 700 }}>{t.label} side</div>}
 
-      {result && <ResultPanel result={result} rating={rating} strengths={strengths} squad={squad} mode={mode} />}
+      {result && <ResultPanel result={result} rating={rating} mode={mode} />}
+
+      {viewing && (
+        <PlayerModal
+          v={viewing}
+          openSlots={viewing.source === "roster" ? openSlotsFor(viewing.p) : []}
+          year={viewing.source === "roster" ? year : (viewing.p as Pick).fromYear}
+          team={viewing.source === "roster" ? team?.name ?? "" : (viewing.p as Pick).fromTeam}
+          onAdd={place}
+          onRemove={() => viewing.slotIndex != null && removeAt(viewing.slotIndex)}
+          onClose={() => setViewing(null)}
+        />
+      )}
     </div>
   );
 }
 
-function PlayerChip({ p, small }: { p: Pick; small?: boolean }) {
+function EmptySlot({ pos, small }: { pos: SlotPos; small?: boolean }) {
   return (
     <div
-      className="card"
-      style={{ padding: small ? ".3rem .5rem" : ".4rem .6rem", textAlign: "center", minWidth: small ? 92 : 104, background: "rgba(10,14,26,.78)" }}
-      title={`${p.name} — ${p.fromTeam} ${p.fromYear}`}
+      style={{
+        width: small ? 92 : 104,
+        minHeight: small ? 58 : 92,
+        borderRadius: 10,
+        border: "1px dashed rgba(255,255,255,.3)",
+        display: "grid",
+        placeItems: "center",
+        color: "rgba(255,255,255,.65)",
+        fontWeight: 800,
+        fontSize: ".8rem",
+        background: "rgba(0,0,0,.18)",
+      }}
     >
-      <div style={{ fontWeight: 900, color: "var(--accent)", fontSize: small ? ".9rem" : "1rem" }}>{p.rating.toFixed(0)}</div>
-      <div style={{ fontWeight: 700, fontSize: small ? ".7rem" : ".76rem", lineHeight: 1.1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: small ? 84 : 96 }}>{p.name}</div>
-      <div style={{ color: "var(--muted)", fontSize: ".64rem" }}>{p.fromTeam} {String(p.fromYear).slice(2)}</div>
+      {pos}
     </div>
   );
 }
 
-function ResultPanel({
-  result,
-  rating,
-  squad,
-  mode,
+function PlayerChip({ p, small, onClick }: { p: Pick; small?: boolean; onClick: () => void }) {
+  const secondary = p.slot !== "SUB" && p.slot !== natOf(p);
+  return (
+    <button
+      onClick={onClick}
+      className="card"
+      style={{ padding: small ? ".3rem .5rem" : ".4rem .6rem", textAlign: "center", minWidth: small ? 92 : 104, background: "rgba(10,14,26,.8)", color: "var(--text)", cursor: "pointer" }}
+      title={`${p.name} — ${p.fromTeam} ${p.fromYear}`}
+    >
+      <div style={{ fontWeight: 900, color: "var(--accent)", fontSize: small ? ".9rem" : "1rem" }}>
+        {effRating(p, p.slot).toFixed(0)}
+        {p.slot !== "SUB" && <span style={{ fontSize: ".6rem", color: secondary ? "var(--gold)" : "var(--muted)", marginLeft: 3 }}>{p.slot}{secondary ? "*" : ""}</span>}
+      </div>
+      <div style={{ fontWeight: 700, fontSize: small ? ".7rem" : ".76rem", lineHeight: 1.1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: small ? 84 : 96 }}>{p.name}</div>
+      <div style={{ color: "var(--muted)", fontSize: ".64rem" }}>{p.fromTeam} {String(p.fromYear).slice(2)}</div>
+    </button>
+  );
+}
+
+const POS_NAME: Record<SlotPos, string> = { GK: "Goalkeeper", DEF: "Defender", MID: "Midfielder", FWD: "Forward", SUB: "Bench" };
+
+function PlayerModal({
+  v,
+  openSlots,
+  year,
+  team,
+  onAdd,
+  onRemove,
+  onClose,
 }: {
-  result: SeasonResult;
-  rating: number;
-  strengths: any[];
-  squad: Pick[];
-  mode: Mode;
+  v: { p: HistPlayer; source: "roster" | "squad"; slotIndex?: number };
+  openSlots: SlotPos[];
+  year: string;
+  team: string;
+  onAdd: (p: HistPlayer, slot: SlotPos) => void;
+  onRemove: () => void;
+  onClose: () => void;
 }) {
+  const p = v.p;
+  const age = p.born ? Number(year) - p.born : null;
+  const boost = vBoost(p);
+  const photo = `https://resources.premierleague.com/premierleague25/photos/players/110x140/${p.id}.png`;
+  const stats: [string, string | number][] = [
+    ["Rating", p.rating.toFixed(1)],
+    ["Goals", p.g],
+    ["Assists", p.a],
+    ["Appearances", p.apps],
+    ["Clean sheets", p.cs],
+  ];
+  return (
+    <div
+      onClick={onClose}
+      style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.6)", display: "grid", placeItems: "center", zIndex: 100, padding: "1rem" }}
+    >
+      <div onClick={(e) => e.stopPropagation()} className="card pop" style={{ width: "min(420px,100%)", padding: "1.25rem", maxHeight: "85dvh", overflowY: "auto" }}>
+        <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={photo} alt="" width={64} height={80} loading="lazy" style={{ borderRadius: 10, background: "var(--panel-2)", objectFit: "cover" }} onError={(e) => { (e.target as HTMLImageElement).style.visibility = "hidden"; }} />
+          <div style={{ minWidth: 0 }}>
+            <h3 style={{ margin: 0, fontSize: "1.2rem" }}>{p.name}</h3>
+            <div style={{ color: "var(--muted)", fontSize: ".85rem" }}>
+              {team} · {year}/{(Number(year) + 1) % 100}
+            </div>
+            <div style={{ color: "var(--muted)", fontSize: ".85rem" }}>
+              {POS_NAME[natOf(p)]}{p.nat ? ` · ${p.nat}` : ""}{age ? ` · ${age}y` : ""}{p.shirt ? ` · #${p.shirt}` : ""}
+            </div>
+          </div>
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 6, margin: "1rem 0" }}>
+          {stats.map(([l, val]) => (
+            <div key={l} style={{ background: "var(--panel-2)", borderRadius: 8, padding: ".5rem .3rem", textAlign: "center" }}>
+              <div style={{ fontWeight: 900, color: "var(--accent)" }}>{val}</div>
+              <div style={{ fontSize: ".6rem", color: "var(--muted)", textTransform: "uppercase" }}>{l}</div>
+            </div>
+          ))}
+        </div>
+
+        {boost > 1 && (
+          <div className="chip" style={{ color: "var(--gold)", marginBottom: 12 }}>
+            ★ Versatile — can play {eligOf(p).join(", ")} · ×{boost.toFixed(2)} boost
+          </div>
+        )}
+
+        {v.source === "roster" ? (
+          openSlots.length > 0 ? (
+            <div style={{ display: "grid", gap: 6 }}>
+              <div style={{ fontSize: ".75rem", color: "var(--muted)", textTransform: "uppercase" }}>Add to position</div>
+              {openSlots.map((slot) => {
+                const secondary = slot !== "SUB" && slot !== natOf(p);
+                return (
+                  <button key={slot} className="btn btn-primary" onClick={() => onAdd(p, slot)} style={{ justifyContent: "space-between" }}>
+                    <span>{POS_NAME[slot]}{secondary ? " (out of position)" : ""}</span>
+                    <strong>{effRating(p, slot).toFixed(0)}</strong>
+                  </button>
+                );
+              })}
+            </div>
+          ) : (
+            <p style={{ color: "var(--muted)", margin: 0 }}>No open slot fits this player right now.</p>
+          )
+        ) : (
+          <button className="btn" onClick={onRemove} style={{ width: "100%", color: "var(--danger)" }}>Remove from squad</button>
+        )}
+
+        <button className="btn" onClick={onClose} style={{ width: "100%", marginTop: 8 }}>Close</button>
+      </div>
+    </div>
+  );
+}
+
+function ResultPanel({ result, rating, mode }: { result: SeasonResult; rating: number; mode: Mode }) {
   const story = result.story;
   const W = story.filter((g) => g.result === "W").length;
   const D = story.filter((g) => g.result === "D").length;
@@ -396,25 +587,10 @@ function ResultPanel({
         <div style={{ fontSize: ".72rem", color: "var(--muted)", textTransform: "uppercase", letterSpacing: ".05em", marginBottom: 6 }}>The 38-game story</div>
         <div style={{ display: "flex", gap: 3, flexWrap: "wrap" }}>
           {story.map((g, i) => (
-            <span
-              key={i}
-              title={`MW${g.round}: ${g.home ? "vs" : "@"} ${g.oppName} — ${g.result}`}
-              style={{
-                width: 22, height: 22, display: "grid", placeItems: "center", borderRadius: 5, fontSize: ".62rem", fontWeight: 800,
-                color: g.result === "L" ? "#fff" : "#04220f",
-                background: g.result === "W" ? "var(--accent)" : g.result === "D" ? "var(--gold)" : "var(--danger)",
-              }}
-            >
-              {g.result}
-            </span>
+            <span key={i} title={`MW${g.round}: ${g.home ? "vs" : "@"} ${g.oppName} — ${g.result}`} style={{ width: 22, height: 22, display: "grid", placeItems: "center", borderRadius: 5, fontSize: ".62rem", fontWeight: 800, color: g.result === "L" ? "#fff" : "#04220f", background: g.result === "W" ? "var(--accent)" : g.result === "D" ? "var(--gold)" : "var(--danger)" }}>{g.result}</span>
           ))}
         </div>
       </div>
-
-      <p style={{ color: "var(--muted)", fontSize: ".82rem", margin: 0 }}>
-        An XI this strong goes a whole season unbeaten about <strong style={{ color: "var(--accent)" }}>{invLabel}</strong> of the time
-        {unbeaten ? " — and you just did it!" : "."}
-      </p>
 
       <div style={{ display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
         <button className="btn btn-primary" onClick={share}>📋 Share</button>
