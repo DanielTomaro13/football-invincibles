@@ -8,7 +8,7 @@ import HomeLeaderboard from "@/components/HomeLeaderboard";
 export const metadata: Metadata = pageMeta({
   title: "Football Invincibles — Football Stats, Tables & Mini-Games",
   description:
-    "Live Premier League tables and stats, deep player profiles, and a vault of free football mini-games: build an unbeaten Invincibles XI from 16 seasons of real players, plus Footle, Higher or Lower, Guess the Player, Career Path, Beat the Clock and Score Predictor. New daily puzzles, global leaderboards, no sign-up.",
+    "Live Premier League and LaLiga tables and stats, deep player profiles, and a vault of free football mini-games: build an unbeaten Invincibles XI from years of real players, plus Footle, Higher or Lower, Guess the Player, Career Path, Beat the Clock and Score Predictor. New daily puzzles, global leaderboards, no sign-up.",
   path: "/",
   keywords: [
     "football games",
@@ -25,7 +25,7 @@ export const metadata: Metadata = pageMeta({
 });
 
 const GAMES = [
-  { slug: "invincibles", title: "Invincibles", blurb: "Spin a year & club, pick real players from 16 seasons, go unbeaten.", emoji: "🏆" },
+  { slug: "invincibles", title: "Invincibles", blurb: "Spin a year & club, pick real players, go unbeaten.", emoji: "🏆" },
   { slug: "footle", title: "Footle", blurb: "Wordle for footballers — 8 guesses, new player daily.", emoji: "🟩" },
   { slug: "higher-or-lower", title: "Higher or Lower", blurb: "Which player scored more? Keep the streak alive.", emoji: "⚖️" },
   { slug: "guess-the-player", title: "Guess the Player", blurb: "Reveal clues one at a time. Fewer = more points.", emoji: "🕵️" },
@@ -43,13 +43,12 @@ export default function Home() {
     <div style={{ display: "grid", gap: "2.5rem" }}>
       {/* Hero */}
       <section className="card" style={{ padding: "2.5rem 1.5rem", textAlign: "center", overflow: "hidden" }}>
-        <span className="chip" style={{ marginBottom: 14 }}>⚽ 16 seasons of real players · global leaderboards</span>
         <h1 style={{ fontSize: "clamp(2rem,5vw,3.4rem)", lineHeight: 1.05, margin: "0 0 .6rem", fontWeight: 900 }}>
           Build your <span style={{ color: "var(--accent)" }}>Invincible</span> XI.
           <br /> Master the football <span style={{ color: "var(--accent2)" }}>vault</span>.
         </h1>
         <p style={{ color: "var(--muted)", maxWidth: 640, margin: "0 auto 1.4rem", fontSize: "1.05rem" }}>
-          Spin clubs and seasons, draft real Premier League players from the last 16 years, and chase an
+          Spin clubs and seasons, draft real Premier League or LaLiga players, and chase an
           unbeaten campaign. Plus live tables, player profiles and a vault of daily football puzzles.
         </p>
         <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
@@ -117,7 +116,7 @@ export default function Home() {
               ✅ {comp.name}
             </Link>
           ))}
-          <span className="chip">🔜 LaLiga · Serie A · Bundesliga · Ligue 1 · UCL</span>
+          <span className="chip">🔜 Serie A · Bundesliga · Ligue 1 · UCL</span>
         </div>
       </section>
     </div>

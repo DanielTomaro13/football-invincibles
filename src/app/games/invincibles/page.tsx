@@ -4,9 +4,9 @@ import InvinciblesGame from "@/components/games/InvinciblesGame";
 import { pageMeta } from "@/lib/seo";
 
 export const metadata: Metadata = pageMeta({
-  title: "Invincibles — Build an Unbeaten XI from 16 Seasons of Players",
+  title: "Invincibles — Build an Unbeaten XI from Real Players",
   description:
-    "Spin a random club from a random season going back 16 years, pick a real player rated on that exact campaign, and build your squad. Three modes — 5-a-side, full squad, or salary cap — then simulate 38 games and try to go invincible. Top the Invincibles Wall.",
+    "Spin a random club from a random season, pick a real player rated on that exact campaign, and build your squad — Premier League or LaLiga. Three modes — 5-a-side, full squad, or salary cap — then simulate 38 games and try to go invincible. Top the Invincibles Wall.",
   path: "/games/invincibles",
   keywords: [
     "invincibles game",
@@ -15,6 +15,7 @@ export const metadata: Metadata = pageMeta({
     "fantasy XI builder",
     "football squad builder game",
     "all-time premier league XI",
+    "laliga dream team",
   ],
 });
 
@@ -24,7 +25,7 @@ export default function InvinciblesPage() {
       slug="invincibles"
       emoji="🏆"
       title="Invincibles"
-      intro="Spin a random club from a random Premier League season — anywhere in the last 16 years — and pick one player, rated on that exact campaign. Build a 5-a-side, a full squad, or a salary-capped team, then simulate a 38-game season chasing an unbeaten record, just like Arsenal's 2003/04 Invincibles. Go the whole way undefeated and you make the Wall."
+      intro="Choose your league — Premier League or LaLiga — then spin a random club from a random season and pick one player, rated on that exact campaign. Build a 5-a-side, a full squad, or a salary-capped team, then simulate a 38-game season chasing an unbeaten record, just like Arsenal's 2003/04 Invincibles. Go the whole way undefeated and you make the Wall."
       howTo={[
         "Pick a mode: 5-a-side + 1 sub, full squad + 5 subs, or full squad under a salary cap. For the full squad you also choose one of three random formations.",
         "Each spin lands on a random club from a random season. Tap a player to see their stats, then add them to a position they can play.",

@@ -127,7 +127,7 @@ export default function InvinciblesGame() {
   const [respins, setRespins] = useState(0);
   const [result, setResult] = useState<SeasonResult | null>(null);
   const [viewing, setViewing] = useState<{ p: HistPlayer; source: "roster" | "squad"; slotIndex?: number } | null>(null);
-  const [seen, setSeen] = useState<Set<string | number>>(new Set());
+  const [seen, setSeen] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [muted, setM] = useState(false);
   const idxRef = useRef<HistoryIndex | null>(null);
@@ -136,10 +136,13 @@ export default function InvinciblesGame() {
   const prefix = comp.dataPrefix;
   const meta = MODE_META[mode];
 
+  const prefixRef = useRef(prefix);
+
   // ---- spin with slot-machine animation + sound ----
   const spin = useCallback(async () => {
     const idx = idxRef.current;
     if (!idx) return;
+    const myPrefix = prefix;
     setSpinning(true);
     setViewing(null);
     playSpin(720);
@@ -150,6 +153,8 @@ export default function InvinciblesGame() {
     const rosters = await loadSeasonRosters(season.year, prefix);
     await new Promise((r) => setTimeout(r, 680));
     clearInterval(iv);
+    // a league switch happened mid-spin — discard this stale result
+    if (prefixRef.current !== myPrefix) return;
     setReel(null);
     setYear(season.year);
     setTeam(tm);
@@ -158,8 +163,9 @@ export default function InvinciblesGame() {
     playSelect();
   }, [prefix]);
 
-  // (re)load when the competition changes — and reset the build
+  // (re)load when the competition changes — and fully reset the build
   useEffect(() => {
+    prefixRef.current = prefix;
     setM(isMuted());
     setLoading(true);
     setMode("full");
@@ -168,7 +174,14 @@ export default function InvinciblesGame() {
     setResult(null);
     setSeen(new Set());
     setRespins(MODE_META.full.respins);
+    // clear any roster/team/reel from the previous competition
+    setRoster([]);
+    setTeam(null);
+    setYear("");
+    setReel(null);
+    setSpinning(false);
     Promise.all([loadHistoryIndex(prefix), loadStrengths(prefix)]).then(([idx, st]) => {
+      if (prefixRef.current !== prefix) return;
       idxRef.current = idx;
       setIndex(idx);
       setStrengths(st);
@@ -212,13 +225,13 @@ export default function InvinciblesGame() {
   );
 
   const place = (p: HistPlayer, slotPos: SlotPos) => {
-    if (seen.has(p.id)) return;
+    if (seen.has(String(p.id))) return;
     const i = squad.findIndex((s) => !s.player && s.pos === slotPos);
     if (i === -1) return;
     const next = [...squad];
     next[i] = { pos: slotPos, player: { ...p, fromYear: year, fromTeam: team?.short ?? "", slot: slotPos } };
     setSquad(next);
-    setSeen((s) => new Set(s).add(p.id));
+    setSeen((s) => new Set(s).add(String(p.id)));
     setResult(null);
     setViewing(null);
     playSelect();
@@ -229,7 +242,7 @@ export default function InvinciblesGame() {
   // prompt. Only open the picker when that's full and they'd have to play out
   // of position / on the bench (i.e. there's an actual choice to make).
   const placeSmart = (p: HistPlayer) => {
-    if (seen.has(p.id)) return;
+    if (seen.has(String(p.id))) return;
     const opts = openSlotsFor(p);
     if (!opts.length) return;
     const nat = natOf(p);
@@ -240,7 +253,7 @@ export default function InvinciblesGame() {
 
   const removeAt = (idx: number) => {
     const p = squad[idx].player;
-    if (p) setSeen((s) => { const n = new Set(s); n.delete(p.id); return n; });
+    if (p) setSeen((s) => { const n = new Set(s); n.delete(String(p.id)); return n; });
     setSquad((sq) => sq.map((s, i) => (i === idx ? { ...s, player: null } : s)));
     setResult(null);
     setViewing(null);
@@ -365,7 +378,7 @@ export default function InvinciblesGame() {
               <p style={{ margin: "0 0 -2px", fontSize: ".72rem", color: "var(--muted)" }}>Tap a player to add them to their position · ⓘ for stats &amp; other slots</p>
               <div style={{ display: "grid", gap: 6, gridTemplateColumns: "repeat(auto-fill,minmax(155px,1fr))", maxHeight: 270, overflowY: "auto", WebkitOverflowScrolling: "touch", overscrollBehavior: "contain", opacity: spinning ? 0.4 : 1, transition: "opacity .2s" }}>
                 {filtered.map((p) => {
-                  const usable = !seen.has(p.id) && openSlotsFor(p).length > 0;
+                  const usable = !seen.has(String(p.id)) && openSlotsFor(p).length > 0;
                   const versatile = eligOf(p).length > 1;
                   return (
                     <div key={p.id} className="card" style={{ padding: ".45rem .5rem", display: "flex", gap: 6, alignItems: "center", opacity: usable ? 1 : 0.4 }}>

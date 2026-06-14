@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import CompetitionNote from "@/components/CompetitionNote";
 import PlayersBrowser, { type BrowsePlayer } from "@/components/PlayersBrowser";
 import { DEFAULT_COMPETITION, seasonLabel } from "@/lib/competitions";
 import { pageMeta } from "@/lib/seo";
@@ -30,6 +31,7 @@ export default function PlayersPage() {
   const c = DEFAULT_COMPETITION;
   return (
     <div style={{ display: "grid", gap: "1.25rem" }}>
+      <CompetitionNote section="Player profiles" />
       <div>
         <h1 style={{ fontSize: "1.9rem", fontWeight: 900, margin: "0 0 .25rem" }}>Players</h1>
         <p style={{ color: "var(--muted)", margin: 0 }}>
