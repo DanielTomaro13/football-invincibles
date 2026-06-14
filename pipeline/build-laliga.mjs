@@ -85,6 +85,37 @@ function composite(pos, s) {
   }
 }
 
+// Current-season fixtures/results. The matches feed mixes competitions, so we
+// filter to competition=primera-division (the league) — that returns exactly the
+// 380 league games. Paginated 100/page (limit>100 500s). Same raw shape as the
+// PL feed so the competition-aware Fixtures page can read it directly.
+async function fetchFixtures(slug) {
+  const out = [];
+  for (let offset = 0; offset < 600; offset += 100) {
+    const d = await get(`/api/v1/matches?subscription=${slug}&competition=primera-division&limit=100&offset=${offset}`);
+    const list = d?.matches ?? [];
+    out.push(...list);
+    if (list.length < 100) break;
+    await sleep(80);
+  }
+  const done = (s) => s === "FullTime" || s === "PostMatch" || s === "Finished";
+  return out
+    .filter((m) => m.home_team?.id && m.away_team?.id)
+    .map((m) => ({
+      id: String(m.id),
+      mw: m.gameweek?.week ?? 0,
+      home: m.home_team.nickname || m.home_team.name,
+      homeId: String(m.home_team.id),
+      hs: done(m.status) ? m.home_score : null,
+      away: m.away_team.nickname || m.away_team.name,
+      awayId: String(m.away_team.id),
+      as: done(m.status) ? m.away_score : null,
+      ground: m.venue?.name || "",
+      date: m.date || null,
+    }))
+    .sort((a, b) => a.mw - b.mw);
+}
+
 async function allPlayerStats(slug) {
   const byId = new Map();
   for (let offset = 0; offset < 1200; offset += 100) {
@@ -202,6 +233,12 @@ async function main() {
           teamId: e.team.id, name: e.team.shortName,
           strength: Math.max(0.12, Math.min(0.92, e.overall.points / (e.overall.played * 3) + (e.overall.goalsFor - e.overall.goalsAgainst) / (e.overall.played * 30))),
         })).sort((a, b) => a.strength - b.strength);
+        // current-season fixtures power the competition-aware Fixtures page
+        try {
+          const fixtures = await fetchFixtures(s.slug);
+          if (fixtures.length) writeFileSync(join(OUT, "fixtures.json"), JSON.stringify(fixtures));
+          console.log(`  fixtures: ${fixtures.length} league matches`);
+        } catch (e) { console.log(`  fixtures: error ${e.message}`); }
       }
       // write index/standings/strengths after every season so a partial run is usable
       writeFileSync(join(OUT, "history-index.json"), JSON.stringify(index));

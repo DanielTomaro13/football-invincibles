@@ -30,7 +30,7 @@
 | `GET /api/v1/subscriptions/{slug}/players/stats?limit=100&offset=N` | **every player** (≈749) with full Opta `stats[]` (name/stat pairs) + position + team + opta_id. Max `limit`=100. |
 | `GET /api/v1/teams/{teamSlug}/squad?subscription={slug}` | a club's squad: `person` (name, date_of_birth, country, height), `photos`, position id, shirt, opta_id |
 | `GET /api/v1/subscriptions/{slug}/rounds` | rounds/matchweeks |
-| `GET /api/v1/matches?subscription={slug}` | matches |
+| `GET /api/v1/matches?subscription={slug}&competition=primera-division&limit=100&offset=N` | **league** matches only. The raw feed mixes competitions (Copa, Mundial, etc. — each match has `competition.slug`/`main`), so **filter `competition=primera-division`** → exactly the 380 league games. Paginate `limit=100&offset=N` (`limit>100` → HTTP 500). Fields: `home_score`/`away_score`, `status` (`FullTime`), `gameweek.week` (matchweek), `home_team`/`away_team` (id, nickname, `shield`), `venue.name`. |
 
 ## Useful stat names (snake_case)
 
