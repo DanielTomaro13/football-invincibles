@@ -49,6 +49,7 @@ export default function Home() {
         </p>
         <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
           <Link href="/games/invincibles" className="btn btn-primary">🏆 Play Invincibles</Link>
+          <Link href="/games/invincibles?mode=five" className="btn">⚡ Quick 5-a-side</Link>
           <Link href="/games" className="btn">All games</Link>
           <Link href="/tables" className="btn">League table</Link>
         </div>

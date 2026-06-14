@@ -137,6 +137,7 @@ export default function InvinciblesGame() {
   const meta = MODE_META[mode];
 
   const prefixRef = useRef(prefix);
+  const quickFiveRef = useRef(typeof window !== "undefined" && new URLSearchParams(window.location.search).get("mode") === "five");
 
   // ---- spin with slot-machine animation + sound ----
   const spin = useCallback(async () => {
@@ -186,7 +187,13 @@ export default function InvinciblesGame() {
       setIndex(idx);
       setStrengths(st);
       setLoading(false);
-      setFormOptions(pick3(Math.random));
+      // ?mode=five deep-link: jump straight into a 5-a-side spin (once)
+      if (quickFiveRef.current) {
+        quickFiveRef.current = false;
+        startMode("five");
+      } else {
+        setFormOptions(pick3(Math.random));
+      }
     });
   }, [prefix]);
 

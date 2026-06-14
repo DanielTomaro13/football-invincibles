@@ -25,7 +25,8 @@ export interface Competition {
   currentSeason: string;
   seasons: string[];
   enabled: boolean; // false === "coming soon" (shown but not data-backed yet)
-  accent: string;
+  accent: string; // league colour — themes the whole site when selected
+  accentInk: string; // readable text colour on top of `accent`
   badge: string; // emoji/flag for the league switch
 }
 
@@ -42,6 +43,7 @@ export const COMPETITIONS: Competition[] = [
     seasons: ["2025", "2024", "2023", "2022", "2021"],
     enabled: true,
     accent: "#00e676",
+    accentInk: "#04220f",
     badge: "🏴󠁧󠁢󠁥󠁮󠁧󠁿",
   },
   {
@@ -53,16 +55,17 @@ export const COMPETITIONS: Competition[] = [
     sdpId: "",
     dataPrefix: "laliga/",
     currentSeason: "2025",
-    seasons: ["2025", "2024", "2023", "2022", "2021"],
+    seasons: ["2025","2024","2023","2022","2021","2020","2019","2018","2017","2016","2015","2014","2013"],
     enabled: true,
-    accent: "#ee324e",
+    accent: "#ff3b50",
+    accentInk: "#ffffff",
     badge: "🇪🇸",
   },
   // ---- Coming soon (UI placeholders; flip `enabled` once data is wired) ----
-  { slug: "serie-a", name: "Serie A", shortName: "Serie A", country: "Italy", provider: "pl-sdp", sdpId: "", dataPrefix: "", currentSeason: "2025", seasons: ["2025"], enabled: false, accent: "#38bdf8", badge: "🇮🇹" },
-  { slug: "bundesliga", name: "Bundesliga", shortName: "Bundesliga", country: "Germany", provider: "pl-sdp", sdpId: "", dataPrefix: "", currentSeason: "2025", seasons: ["2025"], enabled: false, accent: "#ffd166", badge: "🇩🇪" },
-  { slug: "ligue-1", name: "Ligue 1", shortName: "Ligue 1", country: "France", provider: "pl-sdp", sdpId: "", dataPrefix: "", currentSeason: "2025", seasons: ["2025"], enabled: false, accent: "#a78bfa", badge: "🇫🇷" },
-  { slug: "champions-league", name: "UEFA Champions League", shortName: "Champions League", country: "Europe", provider: "pl-sdp", sdpId: "", dataPrefix: "", currentSeason: "2025", seasons: ["2025"], enabled: false, accent: "#60a5fa", badge: "🏆" },
+  { slug: "serie-a", name: "Serie A", shortName: "Serie A", country: "Italy", provider: "pl-sdp", sdpId: "", dataPrefix: "", currentSeason: "2025", seasons: ["2025"], enabled: false, accent: "#38bdf8", accentInk: "#04220f", badge: "🇮🇹" },
+  { slug: "bundesliga", name: "Bundesliga", shortName: "Bundesliga", country: "Germany", provider: "pl-sdp", sdpId: "", dataPrefix: "", currentSeason: "2025", seasons: ["2025"], enabled: false, accent: "#ffd166", accentInk: "#04220f", badge: "🇩🇪" },
+  { slug: "ligue-1", name: "Ligue 1", shortName: "Ligue 1", country: "France", provider: "pl-sdp", sdpId: "", dataPrefix: "", currentSeason: "2025", seasons: ["2025"], enabled: false, accent: "#a78bfa", accentInk: "#04220f", badge: "🇫🇷" },
+  { slug: "champions-league", name: "UEFA Champions League", shortName: "Champions League", country: "Europe", provider: "pl-sdp", sdpId: "", dataPrefix: "", currentSeason: "2025", seasons: ["2025"], enabled: false, accent: "#60a5fa", accentInk: "#04220f", badge: "🏆" },
 ];
 
 export const DEFAULT_COMPETITION = COMPETITIONS[0];

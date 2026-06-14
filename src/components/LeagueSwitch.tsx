@@ -37,7 +37,7 @@ export default function LeagueSwitch({ compact }: { compact?: boolean }) {
               fontSize: compact ? ".74rem" : ".82rem",
               whiteSpace: "nowrap",
               background: active ? l.accent : "transparent",
-              color: active ? "#06080f" : "var(--muted)",
+              color: active ? l.accentInk : "var(--muted)",
             }}
           >
             <span aria-hidden>{l.badge}</span>

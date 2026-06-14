@@ -32,6 +32,13 @@ export default function CompetitionProvider({ children }: { children: React.Reac
   }, []);
 
   const comp = getCompetition(slug) ?? DEFAULT_COMPETITION;
+
+  // theme the whole site in the active league's colour so it's obvious which is selected
+  useEffect(() => {
+    const root = document.documentElement;
+    root.style.setProperty("--accent", comp.accent);
+    root.style.setProperty("--accent-ink", comp.accentInk);
+  }, [comp.accent, comp.accentInk]);
   return <CompetitionCtx.Provider value={{ comp, setComp }}>{children}</CompetitionCtx.Provider>;
 }
 

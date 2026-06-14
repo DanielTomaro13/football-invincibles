@@ -11,6 +11,7 @@
   --pitch: #0b6e3b;
   --pitch-line: #1f8a4c;
   --accent: #00e676;
+  --accent-ink: #04220f;
   --accent-2: #38bdf8;
   --gold: #ffd166;
   --danger: #ff5d73;
@@ -126,8 +127,8 @@ table {
   transform: translateY(1px);
 }
 .btn-primary {
-  background: linear-gradient(180deg, #00e676, #00b85e);
-  color: #04220f;
+  background: var(--accent);
+  color: var(--accent-ink, #04220f);
   border-color: transparent;
 }
 .btn:disabled {
