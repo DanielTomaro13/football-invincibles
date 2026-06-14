@@ -129,8 +129,8 @@ export function getPlayer(id: string): LocalPlayer | undefined {
 export interface LocalMatch {
   id: string;
   matchWeek: number;
-  home: { id: string; name: string; score: number };
-  away: { id: string; name: string; score: number };
+  home: { id: string; name: string; score: number; badge?: string };
+  away: { id: string; name: string; score: number; badge?: string };
   ground?: string;
 }
 

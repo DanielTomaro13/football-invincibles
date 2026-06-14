@@ -34,14 +34,14 @@ export default function MatchweekView({ matches }: { matches: LocalMatch[] }) {
             <div style={{ display: "flex", alignItems: "center", gap: 8, justifyContent: "flex-end", fontWeight: 600 }}>
               {m.home.name}
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={teamBadge(m.home.id)} alt="" width={20} height={20} loading="lazy" />
+              <img src={m.home.badge || teamBadge(m.home.id)} alt="" width={20} height={20} loading="lazy" onError={(e) => { (e.target as HTMLImageElement).style.visibility = "hidden"; }} />
             </div>
             <div style={{ minWidth: 70, textAlign: "center", fontWeight: 800, background: "var(--panel-2)", borderRadius: 8, padding: ".25rem .5rem" }}>
               {m.home.score} – {m.away.score}
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 600 }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={teamBadge(m.away.id)} alt="" width={20} height={20} loading="lazy" />
+              <img src={m.away.badge || teamBadge(m.away.id)} alt="" width={20} height={20} loading="lazy" onError={(e) => { (e.target as HTMLImageElement).style.visibility = "hidden"; }} />
               {m.away.name}
             </div>
           </div>

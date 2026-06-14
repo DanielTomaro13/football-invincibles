@@ -29,10 +29,10 @@ const B = "https://api-sdp.legaseriea.it/v1/serie-a/football";
 const MEDIA = "https://media-sdp.legaseriea.it";
 const COMP = "serie-a::Football_Competition::ec93b94f74294dc98ab5bcfd67fc0d88";
 
-// Build full rateable rosters from 2010/11 onward — the range where Opta tracks
-// enough per-player detail (goals, assists, tackles, interceptions) for the
-// position-aware rating to be meaningful. Older seasons exist but are too sparse.
-const FROM_YEAR = 2010;
+// Build full rateable rosters from 2005/06 onward. Clean sheets are derived from
+// match results (available every season), so defenders/keepers get a real signal
+// even in older seasons where Opta's per-player defensive stats are thin.
+const FROM_YEAR = 2005;
 
 const POS = { 1: "Goalkeeper", 2: "Defender", 3: "Midfielder", 4: "Forward" };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -62,23 +62,48 @@ const sm = (stats) => { const m = {}; for (const s of stats || []) m[s.statsId] 
 const num = (m, ...keys) => { for (const k of keys) { const v = m[k]; if (v != null && v !== "") return Number(v) || 0; } return 0; };
 const mediaUrl = (rel) => (rel ? `${MEDIA}/${rel}` : null);
 
-function composite(pos, m) {
+// Identical engine to the PL / La Liga pipelines now that clean sheets exist
+// (derived from match results), so defenders/keepers are clean-sheet dominant.
+function composite(pos, m, cs) {
   const g = num(m, "goals", "Goals"), a = num(m, "assists", "Goal Assists"),
     apps = num(m, "games-played", "Games Played"),
     sot = num(m, "on-target-scoring-attempts", "Shots On Target ( inc goals )"),
     pas = num(m, "Total Passes", "Total Successful Passes ( Excl Crosses & Corners )"),
     tk = num(m, "tackles-won", "Tackles Won"), intc = num(m, "Interceptions"),
-    clr = num(m, "Total Clearances", "total-cleareance"), sv = num(m, "saves"),
-    gaa = num(m, "goals-against-average");
-  // GAA reads 0 when unpopulated; only treat a real positive value as a defensive signal.
-  const dProxy = gaa > 0.01 ? Math.max(0, 2.2 - gaa) : 0;
+    clr = num(m, "Total Clearances", "total-cleareance"), sv = num(m, "saves");
   switch (pos) {
     case "Forward": return g * 5 + a * 3 + sot * 0.25 + apps * 0.6;
     case "Midfielder": return a * 4.5 + g * 3.5 + pas * 0.012 + tk * 0.3 + intc * 0.3 + apps * 0.6;
-    case "Defender": return tk * 0.3 + intc * 0.28 + clr * 0.08 + dProxy * 10 + (g + a) * 2 + apps * 0.5;
-    case "Goalkeeper": return dProxy * 40 + sv * 0.2 + apps * 0.6;
+    case "Defender": return cs * 8 + tk * 0.22 + intc * 0.22 + clr * 0.07 + (g + a) * 2 + apps * 0.4;
+    case "Goalkeeper": return cs * 8 + sv * 0.15 + apps * 0.4;
     default: return apps * 0.6;
   }
+}
+
+// Pull every match in a season and derive per-team clean sheets + games played
+// (a clean sheet = the opponent scored 0 in a finished match).
+async function fetchMatches(seasonId) {
+  const d = await get(`/seasons/${enc(seasonId)}/matches?locale=en-GB`);
+  return d?.matches ?? [];
+}
+const matchWeek = (m) => {
+  const pid = m.matchSet?.providerId || "";
+  const n = Number(pid.split(":").pop());
+  return Number.isFinite(n) && n > 0 ? n : null;
+};
+function teamDefence(matches) {
+  const cs = {}, gp = {};
+  for (const m of matches) {
+    if (m.status !== "FINISHED") continue;
+    const hs = m.providerHomeScore, as = m.providerAwayScore;
+    if (hs == null || as == null) continue;
+    const h = m.home?.teamId, a = m.away?.teamId;
+    if (!h || !a) continue;
+    gp[h] = (gp[h] || 0) + 1; gp[a] = (gp[a] || 0) + 1;
+    if (as === 0) cs[h] = (cs[h] || 0) + 1;
+    if (hs === 0) cs[a] = (cs[a] || 0) + 1;
+  }
+  return { cs, gp };
 }
 
 const playerName = (p) =>
@@ -121,6 +146,9 @@ async function buildSeason(year, seasonId) {
     };
   }).sort((a, b) => a.overall.position - b.overall.position);
 
+  const matches = await fetchMatches(seasonId);
+  const { cs: teamCS, gp: teamGP } = teamDefence(matches);
+
   const players = await allPlayers(seasonId);
   const rosters = {};
   const all = [];
@@ -135,6 +163,10 @@ async function buildSeason(year, seasonId) {
     (seenByTeam[tid] ??= new Set());
     if (seenByTeam[tid].has(id)) continue;
     seenByTeam[tid].add(id);
+    const apps = Math.round(num(m, "games-played", "Games Played"));
+    // distribute the team's clean sheets across its players by share of games played
+    const tGP = teamGP[tid] || 38;
+    const cs = Math.round((teamCS[tid] || 0) * Math.min(1, apps / Math.max(1, tGP)));
     const photo = mediaUrl(p.imagery?.playerImage_home || p.imagery?.playerImage_home_celeb);
     const row = {
       id,
@@ -146,8 +178,9 @@ async function buildSeason(year, seasonId) {
       photo,
       g: Math.round(num(m, "goals", "Goals")),
       a: Math.round(num(m, "assists", "Goal Assists")),
-      apps: Math.round(num(m, "games-played", "Games Played")),
+      apps,
       mins: Math.round(num(m, "minutes-played", "Time Played")),
+      cs,
       sot: Math.round(num(m, "on-target-scoring-attempts", "Shots On Target ( inc goals )")),
       kp: Math.round(num(m, "Key Passes (Attempt Assists)", "total-attacking-assist")),
       pas: Math.round(num(m, "Total Passes")),
@@ -158,7 +191,7 @@ async function buildSeason(year, seasonId) {
       sv: Math.round(num(m, "saves")),
       gc: Math.round(num(m, "goals-conceded")),
       yc: Math.round(num(m, "yellow-cards", "Yellow Cards")),
-      _c: composite(pos, m),
+      _c: composite(pos, m, cs),
     };
     (rosters[tid] ??= []).push(row);
     all.push(row);
@@ -184,7 +217,25 @@ async function buildSeason(year, seasonId) {
   }
 
   const teams = standings.map((s) => teamMeta.get(s.team.id));
-  return { year, label: seasonLabel(year), teams, rosters, standings };
+
+  // fixtures/results in the same raw shape the PL feed uses (public/data/fixtures.json)
+  const fixtures = matches
+    .filter((m) => m.home?.teamId && m.away?.teamId)
+    .map((m) => ({
+      id: m.matchId,
+      mw: matchWeek(m) ?? 0,
+      home: m.home.mediaName || m.home.shortName,
+      homeId: m.home.teamId,
+      hs: m.status === "FINISHED" ? m.providerHomeScore : null,
+      away: m.away.mediaName || m.away.shortName,
+      awayId: m.away.teamId,
+      as: m.status === "FINISHED" ? m.providerAwayScore : null,
+      ground: [m.stadiumName, m.cityName].filter(Boolean).join(", "),
+      date: m.matchDateUtc || null,
+    }))
+    .sort((a, b) => a.mw - b.mw);
+
+  return { year, label: seasonLabel(year), teams, rosters, standings, fixtures };
 }
 
 async function main() {
@@ -212,6 +263,8 @@ async function main() {
           teamId: e.team.id, name: e.team.shortName,
           strength: Math.max(0.12, Math.min(0.92, e.overall.points / (e.overall.played * 3) + (e.overall.goalsFor - e.overall.goalsAgainst) / (e.overall.played * 30))),
         })).sort((a, b) => a.strength - b.strength);
+        // current-season fixtures/results power the (now competition-aware) Fixtures page
+        writeFileSync(join(OUT, "fixtures.json"), JSON.stringify(data.fixtures));
       }
       // write index/standings/strengths after every season so a partial run is usable
       writeFileSync(join(OUT, "history-index.json"), JSON.stringify(index));
