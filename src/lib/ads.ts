@@ -12,8 +12,8 @@
 export const AD_CLIENT = "ca-pub-2087141992057731";
 
 export const AD_SLOTS = {
-  /** responsive banner shown at the bottom of every page */
-  inline: "",
-  /** unit shown below the interactive game (after gameplay, never inside it) */
-  game: "",
+  /** "Home" unit — responsive banner shown at the bottom of every page */
+  inline: "5789788385",
+  /** "Result" unit — shown below the interactive game (after gameplay, never inside it) */
+  game: "6838809461",
 };
