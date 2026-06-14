@@ -2,11 +2,17 @@ name = "football-invincibles-leaderboard"
 main = "src/index.ts"
 compatibility_date = "2025-01-01"
 
+# Branded endpoint on the project's own domain (avoids the account-wide
+# *.workers.dev subdomain). Cloudflare provisions the DNS record + TLS cert.
+[[routes]]
+pattern = "api.footballinvincibles.com"
+custom_domain = true
+
 # Created with: wrangler kv namespace create LEADERBOARD
 # then paste the returned id below.
 [[kv_namespaces]]
 binding = "LEADERBOARD"
-id = "REPLACE_WITH_KV_NAMESPACE_ID"
+id = "a7c901df27bb44b7b0e9edb650e020a2"
 
 [vars]
 ALLOWED_ORIGIN = "https://footballinvincibles.com"
