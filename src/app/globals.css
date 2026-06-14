@@ -35,6 +35,9 @@
 
 html {
   scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  overflow-x: hidden;
 }
 
 body {
@@ -45,8 +48,11 @@ body {
   color: var(--text);
   font-family: var(--font-sans);
   margin: 0;
+  overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+  /* don't let iOS grey-flash every tap */
+  -webkit-tap-highlight-color: transparent;
 }
 
 a {
@@ -54,11 +60,34 @@ a {
   text-decoration: none;
 }
 
+/* prevent iOS Safari auto-zoom when focusing form fields (needs >=16px) */
+input,
+textarea,
+select {
+  font-size: 16px;
+  font-family: inherit;
+}
+
+/* media never forces horizontal overflow */
+img,
+svg,
+table {
+  max-width: 100%;
+}
+
 .container-x {
   width: 100%;
   max-width: 1180px;
   margin-inline: auto;
-  padding-inline: 1rem;
+  /* respect the notch / home indicator on iOS */
+  padding-inline: max(1rem, env(safe-area-inset-left)) max(1rem, env(safe-area-inset-right));
+}
+
+/* smooth, contained scrolling for any horizontal scroller (tables, rosters) */
+.scroll-x {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
 }
 
 .card {
@@ -70,7 +99,9 @@ a {
 .btn {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 0.5rem;
+  min-height: 44px; /* Apple HIG tap target */
   padding: 0.6rem 1rem;
   border-radius: 10px;
   border: 1px solid var(--border);
@@ -78,10 +109,18 @@ a {
   color: var(--text);
   font-weight: 600;
   cursor: pointer;
+  touch-action: manipulation; /* removes 300ms tap delay */
+  user-select: none;
+  -webkit-user-select: none;
   transition: transform 0.06s ease, background 0.15s ease, border-color 0.15s ease;
 }
-.btn:hover {
-  border-color: var(--accent);
+@media (hover: hover) {
+  .btn:hover {
+    border-color: var(--accent);
+  }
+  .btn-primary:hover {
+    filter: brightness(1.05);
+  }
 }
 .btn:active {
   transform: translateY(1px);
@@ -90,9 +129,6 @@ a {
   background: linear-gradient(180deg, #00e676, #00b85e);
   color: #04220f;
   border-color: transparent;
-}
-.btn-primary:hover {
-  filter: brightness(1.05);
 }
 .btn:disabled {
   opacity: 0.45;
@@ -109,6 +145,72 @@ a {
   border: 1px solid var(--border);
   font-size: 0.78rem;
   color: var(--muted);
+  touch-action: manipulation;
+}
+
+/* any interactive chip/link/button gets a comfortable tap area & no tap flash */
+a,
+button {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ---- site header ---- */
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  border-bottom: 1px solid var(--border);
+  background: rgba(10, 14, 26, 0.9);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  padding-top: env(safe-area-inset-top);
+}
+.nav-strip {
+  display: flex;
+  gap: 4px;
+  margin-left: auto;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  /* fade the right edge to hint there's more to scroll on mobile */
+  mask-image: linear-gradient(to right, #000 88%, transparent);
+  -webkit-mask-image: linear-gradient(to right, #000 88%, transparent);
+}
+.nav-strip::-webkit-scrollbar {
+  display: none;
+}
+.nav-link {
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+  min-height: 40px;
+  padding: 0 0.7rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--panel-2);
+  color: var(--text);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+@media (hover: hover) {
+  .nav-link:hover {
+    border-color: var(--accent);
+  }
+}
+@media (min-width: 760px) {
+  .nav-strip {
+    mask-image: none;
+    -webkit-mask-image: none;
+  }
+}
+/* hide the wordmark on very narrow phones so the nav has room */
+@media (max-width: 380px) {
+  .brand-text {
+    display: none;
+  }
 }
 
 .hl-up {

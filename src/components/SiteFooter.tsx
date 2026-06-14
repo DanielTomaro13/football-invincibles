@@ -8,6 +8,7 @@ export default function SiteFooter() {
         borderTop: "1px solid var(--border)",
         marginTop: "4rem",
         padding: "2rem 0",
+        paddingBottom: "calc(2rem + env(safe-area-inset-bottom))",
         color: "var(--muted)",
       }}
     >

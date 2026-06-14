@@ -12,28 +12,14 @@ const NAV = [
 
 export default function SiteHeader() {
   return (
-    <header
-      style={{
-        borderBottom: "1px solid var(--border)",
-        background: "rgba(10,14,26,0.85)",
-        backdropFilter: "blur(8px)",
-        position: "sticky",
-        top: 0,
-        zIndex: 50,
-      }}
-    >
+    <header className="site-header">
       <div
         className="container-x"
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "1.25rem",
-          height: 60,
-        }}
+        style={{ display: "flex", alignItems: "center", gap: "0.75rem", height: 58 }}
       >
         <Link
           href="/"
-          style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 800 }}
+          style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 800, flexShrink: 0 }}
         >
           <span
             aria-hidden
@@ -50,20 +36,13 @@ export default function SiteHeader() {
           >
             FI
           </span>
-          <span>
+          <span className="brand-text">
             Football <span style={{ color: "var(--accent)" }}>Invincibles</span>
           </span>
         </Link>
-        <nav
-          style={{ display: "flex", gap: 4, marginLeft: "auto", flexWrap: "wrap" }}
-        >
+        <nav className="nav-strip" aria-label="Primary">
           {NAV.map((n) => (
-            <Link
-              key={n.href}
-              href={n.href}
-              className="chip"
-              style={{ color: "var(--text)" }}
-            >
+            <Link key={n.href} href={n.href} className="nav-link">
               {n.label}
             </Link>
           ))}

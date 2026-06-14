@@ -292,7 +292,7 @@ export default function InvinciblesGame() {
           <p style={{ margin: 0, color: "var(--muted)", fontSize: ".85rem" }}>
             Pick <strong>one</strong> player from this squad — they join your team rated on their {year}/{(Number(year) + 1) % 100} season.
           </p>
-          <div style={{ display: "grid", gap: 6, gridTemplateColumns: "repeat(auto-fill,minmax(190px,1fr))", maxHeight: 320, overflowY: "auto" }}>
+          <div style={{ display: "grid", gap: 6, gridTemplateColumns: "repeat(auto-fill,minmax(160px,1fr))", maxHeight: 320, overflowY: "auto", WebkitOverflowScrolling: "touch", overscrollBehavior: "contain" }}>
             {roster.map((p) => (
               <button
                 key={p.id}

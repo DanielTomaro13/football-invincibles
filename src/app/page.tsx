@@ -117,7 +117,7 @@ export default function Home() {
       {/* Live table snippet */}
       <section>
         <SectionHead title={`${c.name} — Top of the table`} href="/tables" cta="Full table" />
-        <div className="card" style={{ overflow: "hidden" }}>
+        <div className="card scroll-x">
           <table className="stat">
             <thead>
               <tr><th>#</th><th>Club</th><th>P</th><th>W</th><th>D</th><th>L</th><th>GD</th><th>Pts</th></tr>

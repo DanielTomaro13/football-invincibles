@@ -45,10 +45,23 @@ export const metadata: Metadata = {
     },
   },
   category: "sports",
+  appleWebApp: {
+    capable: true,
+    title: "Invincibles",
+    statusBarStyle: "black-translucent",
+  },
+  formatDetection: { telephone: false },
+  icons: {
+    icon: "/icon.svg",
+    apple: "/icon.svg",
+  },
 };
 
 export const viewport = {
   themeColor: "#0a0e1a",
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover" as const,
 };
 
 export default function RootLayout({
@@ -73,7 +86,7 @@ export default function RootLayout({
       <body>
         <JsonLd data={orgLd} />
         <SiteHeader />
-        <main className="container-x" style={{ paddingTop: "1.5rem", minHeight: "70vh" }}>
+        <main className="container-x" style={{ paddingTop: "1.5rem", minHeight: "70dvh" }}>
           {children}
         </main>
         <SiteFooter />
