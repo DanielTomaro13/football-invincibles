@@ -10,8 +10,8 @@ import {
 } from "@/lib/history";
 import { simulateSeason, buildFixtures, type SeasonResult } from "@/lib/invincible-sim";
 import { recordScore } from "@/lib/progress";
-import { submitScore } from "@/lib/leaderboard";
 import Confetti from "@/components/Confetti";
+import ScoreSubmit from "@/components/games/ScoreSubmit";
 
 const GAME = "invincibles";
 
@@ -38,9 +38,11 @@ const eligOf = (p: HistPlayer): Pos[] => ELIG[natOf(p)] ?? ["MID"];
 const vBoost = (p: HistPlayer): number => 1 + Math.min(0.15, (eligOf(p).length - 1) * 0.075);
 const canFill = (p: HistPlayer, slot: SlotPos): boolean => slot === "SUB" || eligOf(p).includes(slot);
 function effRating(p: HistPlayer, slot: SlotPos): number {
-  const boost = vBoost(p);
-  const base = slot === "SUB" || slot === natOf(p) ? p.rating * boost : p.rating * OUT_OF_POS * boost;
-  return Math.min(99, base); // keep effective ratings on the 0–99 scale
+  // the versatility (utility) boost only applies on the bench, where covering
+  // several positions is what makes a squad player valuable
+  if (slot === "SUB") return Math.min(99, p.rating * vBoost(p));
+  if (slot === natOf(p)) return p.rating; // natural starting position
+  return p.rating * OUT_OF_POS; // out of position, penalised
 }
 
 type Mode = "five" | "full" | "cap";
@@ -205,9 +207,7 @@ export default function InvinciblesGame() {
     const res = simulateSeason(rating, sorted, fixtures, (Math.random() * 1e9) | 0);
     setResult(res);
     const pts = res.story.filter((g) => g.result === "W").length * 3 + res.story.filter((g) => g.result === "D").length;
-    recordScore(GAME, pts);
-    submitScore(GAME, pts);
-    if (res.story.every((g) => g.result !== "L")) submitScore("undefeated", pts);
+    recordScore(GAME, pts); // personal best (local)
   };
 
   if (loading) return <p style={{ color: "var(--muted)" }}>Loading 16 seasons of history…</p>;
@@ -515,7 +515,7 @@ function PlayerModal({
 
         {boost > 1 && (
           <div className="chip" style={{ color: "var(--gold)", marginBottom: 12 }}>
-            ★ Versatile — can play {eligOf(p).join(", ")} · ×{boost.toFixed(2)} boost
+            ★ Versatile — can play {eligOf(p).join(", ")} · ×{boost.toFixed(2)} bench boost
           </div>
         )}
 
@@ -591,6 +591,11 @@ function ResultPanel({ result, rating, mode }: { result: SeasonResult; rating: n
           ))}
         </div>
       </div>
+
+      <ScoreSubmit
+        entries={unbeaten ? [{ game: "invincibles", score: W * 3 + D }, { game: "undefeated", score: W * 3 + D }] : [{ game: "invincibles", score: W * 3 + D }]}
+        label={unbeaten ? "Post to the Wall" : "Submit score"}
+      />
 
       <div style={{ display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
         <button className="btn btn-primary" onClick={share}>📋 Share</button>

@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { teamBadge } from "@/lib/api-client";
 import { recordScore } from "@/lib/progress";
-import { submitScore } from "@/lib/leaderboard";
+import ScoreSubmit from "@/components/games/ScoreSubmit";
 
 const GAME = "score-predictor";
 
@@ -40,10 +40,7 @@ export default function ScorePredictor() {
   const done = fixtures.length > 0 && i >= fixtures.length;
 
   useEffect(() => {
-    if (done) {
-      recordScore(GAME, points);
-      submitScore(GAME, points);
-    }
+    if (done) recordScore(GAME, points); // personal best (local)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [done]);
 
@@ -71,11 +68,12 @@ export default function ScorePredictor() {
     const exacts = log.filter((l) => l.exact).length;
     const outcomes = log.filter((l) => l.outcome && !l.exact).length;
     return (
-      <div className="card pop" style={{ padding: "1.5rem", textAlign: "center" }}>
+      <div className="card pop" style={{ padding: "1.5rem", textAlign: "center", display: "grid", gap: 12 }}>
         <h2 style={{ margin: 0 }}>Final score: {points} pts</h2>
-        <p style={{ color: "var(--muted)" }}>
+        <p style={{ color: "var(--muted)", margin: 0 }}>
           {exacts} exact scoreline{exacts === 1 ? "" : "s"} (5pts) · {outcomes} correct result{outcomes === 1 ? "" : "s"} (2pts)
         </p>
+        {points > 0 && <ScoreSubmit entries={[{ game: GAME, score: points }]} />}
         <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
           <button className="btn btn-primary" onClick={() => { setI(0); setPoints(0); setLog([]); setRevealed(false); }}>
             Play again

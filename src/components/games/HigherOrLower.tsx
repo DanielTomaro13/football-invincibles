@@ -2,7 +2,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { loadGamesData, type GamePlayer } from "@/lib/games-data";
 import { recordScore } from "@/lib/progress";
-import { submitScore } from "@/lib/leaderboard";
+import ScoreSubmit from "@/components/games/ScoreSubmit";
 
 const GAME = "higher-or-lower";
 
@@ -76,7 +76,6 @@ export default function HigherOrLower() {
         setOver(true);
         const nb = recordScore(GAME, streak);
         setNewBest(nb && streak > 0);
-        if (streak > 0) submitScore(GAME, streak);
       }
     }, 900);
   };
@@ -123,6 +122,11 @@ export default function HigherOrLower() {
           <p style={{ color: "var(--muted)" }}>
             {right.name} had {right[metric.key] as number} {metric.label} vs {left.name}&apos;s {left[metric.key] as number}.
           </p>
+          {streak > 0 && (
+            <div style={{ marginBottom: 12 }}>
+              <ScoreSubmit entries={[{ game: GAME, score: streak }]} />
+            </div>
+          )}
           <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
             <button className="btn btn-primary" onClick={restart}>Play again</button>
             <a className="btn" href="/leaderboard">🏆 Leaderboard</a>

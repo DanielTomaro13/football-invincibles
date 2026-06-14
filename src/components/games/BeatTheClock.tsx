@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { loadGamesData, type GamePlayer } from "@/lib/games-data";
 import { slugify } from "@/lib/format";
 import { recordScore } from "@/lib/progress";
-import { submitScore } from "@/lib/leaderboard";
+import ScoreSubmit from "@/components/games/ScoreSubmit";
 
 const GAME = "beat-the-clock";
 const DURATION = 60;
@@ -45,10 +45,7 @@ export default function BeatTheClock() {
   const over = started && time === 0;
 
   useEffect(() => {
-    if (over) {
-      recordScore(GAME, found.length);
-      if (found.length > 0) submitScore(GAME, found.length);
-    }
+    if (over) recordScore(GAME, found.length); // personal best (local)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [over]);
 
@@ -135,9 +132,10 @@ export default function BeatTheClock() {
       )}
 
       {over && (
-        <div className="card pop" style={{ padding: "1.25rem", textAlign: "center" }}>
+        <div className="card pop" style={{ padding: "1.25rem", textAlign: "center", display: "grid", gap: 12 }}>
           <h2 style={{ margin: 0 }}>Time! You named {found.length} of {TARGET_COUNT}</h2>
-          <div style={{ display: "flex", gap: 8, justifyContent: "center", marginTop: 10 }}>
+          {found.length > 0 && <ScoreSubmit entries={[{ game: GAME, score: found.length }]} />}
+          <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
             <button className="btn btn-primary" onClick={start}>Play again</button>
             <a className="btn" href="/leaderboard">🏆 Leaderboard</a>
           </div>
