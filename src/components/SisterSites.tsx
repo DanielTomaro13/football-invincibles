@@ -28,6 +28,9 @@ export default function SisterSites({ active }: { active: "afl" | "nrl" | "footb
         background: "#06080f",
         borderBottom: "1px solid var(--border,#26314d)",
         overflowX: "auto",
+        WebkitOverflowScrolling: "touch",
+        overscrollBehaviorX: "contain",
+        scrollbarWidth: "none",
       }}
     >
       <span style={{ color: "var(--muted,#93a0bd)", marginRight: 2, fontWeight: 700, fontSize: ".7rem" }}>THE 0 SERIES ·</span>

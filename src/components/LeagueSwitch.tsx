@@ -28,14 +28,17 @@ export default function LeagueSwitch({ compact }: { compact?: boolean }) {
             style={{
               display: "inline-flex",
               alignItems: "center",
+              justifyContent: "center",
               gap: 5,
-              padding: compact ? "3px 9px" : "5px 12px",
+              minHeight: compact ? 34 : 38, // comfortable iOS tap target
+              padding: compact ? "0 12px" : "0 14px",
               borderRadius: 999,
               border: "none",
               cursor: "pointer",
               fontWeight: 700,
-              fontSize: compact ? ".74rem" : ".82rem",
+              fontSize: compact ? ".78rem" : ".82rem",
               whiteSpace: "nowrap",
+              touchAction: "manipulation",
               background: active ? l.accent : "transparent",
               color: active ? l.accentInk : "var(--muted)",
             }}
