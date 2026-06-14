@@ -11,12 +11,16 @@ import {
 import { simulateSeason, buildFixtures, type SeasonResult } from "@/lib/invincible-sim";
 import { recordScore } from "@/lib/progress";
 import { playSpin, playSelect, playWin, isMuted, setMuted } from "@/lib/sound";
+import { useCompetition } from "@/components/CompetitionProvider";
+import LeagueSwitch from "@/components/LeagueSwitch";
 import Confetti from "@/components/Confetti";
 import ScoreSubmit from "@/components/games/ScoreSubmit";
 import ShareTeam from "@/components/games/ShareTeam";
 
 const GAME = "invincibles";
-const badge = (id: string) => `https://resources.premierleague.com/premierleague25/badges/${id}.svg`;
+const plBadge = (id: string) => `https://resources.premierleague.com/premierleague25/badges/${id}.svg`;
+const plPhoto = (id: string | number) => `https://resources.premierleague.com/premierleague25/photos/players/110x140/${id}.png`;
+const photoOf = (p: HistPlayer) => p.photo || plPhoto(p.id);
 
 export function salaryOf(rating: number): number {
   return Math.round(Math.pow(Math.max(0, rating - 48) / 50, 2.6) * 95 + 1);
@@ -116,18 +120,20 @@ export default function InvinciblesGame() {
   const [year, setYear] = useState("");
   const [team, setTeam] = useState<SeasonTeam | null>(null);
   const [roster, setRoster] = useState<HistPlayer[]>([]);
-  const [reel, setReel] = useState<{ year: string; name: string; id: string } | null>(null);
+  const [reel, setReel] = useState<{ year: string; name: string; id: string; badge: string | null } | null>(null);
   const [spinning, setSpinning] = useState(false);
   const [squad, setSquad] = useState<Slot[]>([]);
   const [filter, setFilter] = useState<"ALL" | Pos>("ALL");
   const [respins, setRespins] = useState(0);
   const [result, setResult] = useState<SeasonResult | null>(null);
   const [viewing, setViewing] = useState<{ p: HistPlayer; source: "roster" | "squad"; slotIndex?: number } | null>(null);
-  const [seen, setSeen] = useState<Set<number>>(new Set());
+  const [seen, setSeen] = useState<Set<string | number>>(new Set());
   const [loading, setLoading] = useState(true);
   const [muted, setM] = useState(false);
   const idxRef = useRef<HistoryIndex | null>(null);
 
+  const { comp } = useCompetition();
+  const prefix = comp.dataPrefix;
   const meta = MODE_META[mode];
 
   // ---- spin with slot-machine animation + sound ----
@@ -137,11 +143,11 @@ export default function InvinciblesGame() {
     setSpinning(true);
     setViewing(null);
     playSpin(720);
-    const flat = idx.seasons.flatMap((s) => s.teams.map((t) => ({ year: s.year, name: t.name, id: t.id })));
+    const flat = idx.seasons.flatMap((s) => s.teams.map((t) => ({ year: s.year, name: t.name, id: t.id, badge: t.badge ?? null })));
     const iv = setInterval(() => setReel(flat[Math.floor(Math.random() * flat.length)]), 60);
     const season = idx.seasons[Math.floor(Math.random() * idx.seasons.length)];
     const tm = season.teams[Math.floor(Math.random() * season.teams.length)];
-    const rosters = await loadSeasonRosters(season.year);
+    const rosters = await loadSeasonRosters(season.year, prefix);
     await new Promise((r) => setTimeout(r, 680));
     clearInterval(iv);
     setReel(null);
@@ -150,19 +156,26 @@ export default function InvinciblesGame() {
     setRoster(rosters[tm.id] ?? []);
     setSpinning(false);
     playSelect();
-  }, []);
+  }, [prefix]);
 
+  // (re)load when the competition changes — and reset the build
   useEffect(() => {
     setM(isMuted());
-    Promise.all([loadHistoryIndex(), loadStrengths()]).then(([idx, st]) => {
+    setLoading(true);
+    setMode("full");
+    setFormation(null);
+    setSquad([]);
+    setResult(null);
+    setSeen(new Set());
+    setRespins(MODE_META.full.respins);
+    Promise.all([loadHistoryIndex(prefix), loadStrengths(prefix)]).then(([idx, st]) => {
       idxRef.current = idx;
       setIndex(idx);
       setStrengths(st);
       setLoading(false);
-      // default mode "full" → choose a formation first
       setFormOptions(pick3(Math.random));
     });
-  }, []);
+  }, [prefix]);
 
   const startMode = (m: Mode) => {
     setMode(m);
@@ -283,7 +296,12 @@ export default function InvinciblesGame() {
 
   return (
     <div style={{ display: "grid", gap: "1rem" }}>
-      {/* mode selector + mute */}
+      {/* league switch + mute */}
+      <div style={{ display: "flex", gap: 8, alignItems: "center", justifyContent: "space-between", flexWrap: "wrap" }}>
+        <LeagueSwitch />
+        <button onClick={toggleMute} className="chip" style={{ cursor: "pointer" }} title={muted ? "Unmute" : "Mute"}>{muted ? "🔇" : "🔊"}</button>
+      </div>
+      {/* mode selector */}
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "stretch" }}>
         {(Object.keys(MODE_META) as Mode[]).map((m) => (
           <button key={m} onClick={() => startMode(m)} className="card" style={{ padding: ".55rem .8rem", cursor: "pointer", flex: "1 1 140px", textAlign: "left", borderColor: mode === m ? "var(--accent)" : "var(--border)", background: mode === m ? "rgba(0,230,118,.1)" : undefined, color: "var(--text)" }}>
@@ -291,7 +309,6 @@ export default function InvinciblesGame() {
             <div style={{ fontSize: ".74rem", color: "var(--muted)" }}>{MODE_META[m].sub}</div>
           </button>
         ))}
-        <button onClick={toggleMute} className="chip" style={{ cursor: "pointer" }} title={muted ? "Unmute" : "Mute"}>{muted ? "🔇" : "🔊"}</button>
       </div>
 
       {needFormation ? (
@@ -317,7 +334,7 @@ export default function InvinciblesGame() {
                   {spinning && reel ? (
                     <span className="pop" style={{ display: "flex", alignItems: "center", gap: 8, opacity: 0.9 }}>
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={badge(reel.id)} alt="" width={22} height={22} />
+                      <img src={reel.badge || plBadge(reel.id)} alt="" width={22} height={22} />
                       <span style={{ color: "var(--accent2)" }}>{reel.year}/{(Number(reel.year) + 1) % 100}</span> {reel.name}
                     </span>
                   ) : (
@@ -325,7 +342,7 @@ export default function InvinciblesGame() {
                       <>
                         <span className="chip" style={{ fontWeight: 800 }}>📅 {year}/{(Number(year) + 1) % 100}</span>
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={badge(team.id)} alt="" width={22} height={22} />
+                        <img src={team.badge || plBadge(team.id)} alt="" width={22} height={22} />
                         {team.name}
                       </>
                     )
@@ -449,7 +466,7 @@ function PlayerModal({ v, openSlots, year, team, onAdd, onRemove, onClose }: {
   const p = v.p;
   const age = p.born ? Number(year) - p.born : null;
   const boost = vBoost(p);
-  const photo = `https://resources.premierleague.com/premierleague25/photos/players/110x140/${p.id}.png`;
+  const photo = photoOf(p);
   const stats = modalStats(p);
   return (
     <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.6)", display: "grid", placeItems: "center", zIndex: 100, padding: "1rem" }}>

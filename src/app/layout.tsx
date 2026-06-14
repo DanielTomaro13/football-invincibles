@@ -4,6 +4,7 @@ import "./globals.css";
 import SisterSites from "@/components/SisterSites";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
+import CompetitionProvider from "@/components/CompetitionProvider";
 import JsonLd from "@/components/JsonLd";
 import AdUnit from "@/components/AdUnit";
 import { SITE } from "@/lib/seo";
@@ -99,14 +100,16 @@ export default function RootLayout({
       <body>
         <JsonLd data={orgLd} />
         <SisterSites active="football" />
-        <SiteHeader />
-        <main className="container-x" style={{ paddingTop: "1.5rem", minHeight: "70dvh" }}>
-          {children}
-        </main>
-        <div className="container-x">
-          <AdUnit slot={AD_SLOTS.inline} />
-        </div>
-        <SiteFooter />
+        <CompetitionProvider>
+          <SiteHeader />
+          <main className="container-x" style={{ paddingTop: "1.5rem", minHeight: "70dvh" }}>
+            {children}
+          </main>
+          <div className="container-x">
+            <AdUnit slot={AD_SLOTS.inline} />
+          </div>
+          <SiteFooter />
+        </CompetitionProvider>
         {/* Cloudflare Web Analytics */}
         <Script
           src="https://static.cloudflareinsights.com/beacon.min.js"

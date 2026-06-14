@@ -1,4 +1,5 @@
 import Link from "next/link";
+import LeagueSwitch from "@/components/LeagueSwitch";
 
 const NAV = [
   { href: "/tables", label: "Tables" },
@@ -47,6 +48,9 @@ export default function SiteHeader() {
             </Link>
           ))}
         </nav>
+        <div style={{ marginLeft: "auto", flexShrink: 0 }}>
+          <LeagueSwitch compact />
+        </div>
       </div>
     </header>
   );
