@@ -213,6 +213,21 @@ button {
     display: none;
   }
 }
+/* on phones, drop the nav to its own full-width row so the brand + the league
+   switch (all leagues visible as pills) stay on the first row and never cramp */
+@media (max-width: 680px) {
+  .hdr-row {
+    flex-wrap: wrap;
+    row-gap: 8px;
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+  .hdr-row .nav-strip {
+    order: 3;
+    flex-basis: 100%;
+    margin-left: 0;
+  }
+}
 
 .hl-up {
   color: var(--accent);

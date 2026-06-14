@@ -15,8 +15,8 @@ export default function SiteHeader() {
   return (
     <header className="site-header">
       <div
-        className="container-x"
-        style={{ display: "flex", alignItems: "center", gap: "0.75rem", height: 58 }}
+        className="container-x hdr-row"
+        style={{ display: "flex", alignItems: "center", gap: "0.75rem", minHeight: 58 }}
       >
         <Link
           href="/"
