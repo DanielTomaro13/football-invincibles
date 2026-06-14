@@ -6,6 +6,7 @@ const NAV = [
   { href: "/stats", label: "Stats" },
   { href: "/players", label: "Players" },
   { href: "/matches", label: "Fixtures" },
+  { href: "/history", label: "History" },
   { href: "/games", label: "Games" },
   { href: "/leaderboard", label: "Hall of Fame" },
   { href: "/competitions", label: "Competitions" },

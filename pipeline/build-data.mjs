@@ -19,6 +19,7 @@ import { dirname, join } from "node:path";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const OUT_DIR = join(__dirname, "..", "src", "data");
+const PUBLIC_DATA = join(__dirname, "..", "public", "data");
 const SDP = "https://sdp-prem-prod.premier-league-prod.pulselive.com";
 
 const COMPETITION = process.argv[2] || "8";
@@ -142,6 +143,48 @@ async function main() {
   const file = join(OUT_DIR, `pl-${SEASON}.json`);
   writeFileSync(file, JSON.stringify(out));
   console.log(`\nWrote ${players.length} players, ${teams.length} teams → ${file}`);
+
+  // current league table → public/data/standings.json (the Tables/Home table)
+  if (COMPETITION === "8" && Array.isArray(standings) && standings.length) {
+    const table = standings.map((e) => ({
+      team: { id: String(e.team.id), name: e.team.name, shortName: e.team.shortName || e.team.name, abbr: e.team.abbr || "", badge: `https://resources.premierleague.com/premierleague25/badges/${e.team.id}.svg` },
+      overall: {
+        position: e.overall.position, played: e.overall.played, won: e.overall.won, drawn: e.overall.drawn,
+        lost: e.overall.lost, goalsFor: e.overall.goalsFor, goalsAgainst: e.overall.goalsAgainst,
+        points: e.overall.points, startingPosition: e.overall.startingPosition ?? e.overall.position,
+      },
+    }));
+    writeFileSync(join(PUBLIC_DATA, "standings.json"), JSON.stringify({ standings: table }));
+    console.log(`Wrote current table (${table.length}) → public/data/standings.json`);
+  }
+
+  // 5. full fixtures/results for the season → public/data/fixtures.json
+  //    (the Fixtures page reads this; loop every matchweek so it never truncates)
+  const allMatches = [];
+  for (let mw = 1; mw <= 38; mw++) {
+    const j = await get(`/api/v2/matches?competition=${COMPETITION}&season=${SEASON}&matchweek=${mw}&_limit=20`);
+    allMatches.push(...(j?.data ?? []));
+    await sleep(40);
+  }
+  const fixtures = allMatches
+    .filter((m) => m.homeTeam?.id && m.awayTeam?.id)
+    .map((m) => ({
+      id: String(m.matchId),
+      mw: m.matchWeek,
+      home: m.homeTeam.name,
+      homeId: String(m.homeTeam.id),
+      hs: m.period === "FullTime" ? m.homeTeam.score : null,
+      away: m.awayTeam.name,
+      awayId: String(m.awayTeam.id),
+      as: m.period === "FullTime" ? m.awayTeam.score : null,
+      ground: m.ground || "",
+      date: m.kickoff || null,
+    }))
+    .sort((a, b) => a.mw - b.mw || a.id.localeCompare(b.id));
+  if (fixtures.length) {
+    writeFileSync(join(PUBLIC_DATA, "fixtures.json"), JSON.stringify({ matches: fixtures }));
+    console.log(`Wrote ${fixtures.length} fixtures (${[...new Set(fixtures.map((f) => f.mw))].length} matchweeks) → public/data/fixtures.json`);
+  }
   console.log(`Total API calls: ${calls}`);
 }
 

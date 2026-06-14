@@ -89,3 +89,15 @@ export async function loadStandings(prefix = ""): Promise<any[]> {
   standingsCache.set(prefix, s);
   return s;
 }
+
+// Final table for one past season — /data/<prefix>standings/<year>.json (History archive).
+const seasonStandingsCache = new Map<string, any[]>();
+export async function loadSeasonStandings(year: string, prefix = ""): Promise<any[]> {
+  const key = prefix + year;
+  if (seasonStandingsCache.has(key)) return seasonStandingsCache.get(key)!;
+  const r = await fetch(`/data/${prefix}standings/${year}.json?v=${DATA_VERSION}`, { cache: "force-cache" });
+  if (!r.ok) { seasonStandingsCache.set(key, []); return []; }
+  const s = (await r.json()).standings ?? [];
+  seasonStandingsCache.set(key, s);
+  return s;
+}

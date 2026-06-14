@@ -23,6 +23,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "/stats",
     "/players",
     "/matches",
+    "/history",
     "/games",
     "/leaderboard",
     "/competitions",

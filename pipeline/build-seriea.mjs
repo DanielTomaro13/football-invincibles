@@ -25,14 +25,17 @@ import { dirname, join } from "node:path";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const OUT = join(__dirname, "..", "public", "data", "seriea");
 const SEAS_DIR = join(OUT, "seasons");
+const STAND_DIR = join(OUT, "standings");
 const B = "https://api-sdp.legaseriea.it/v1/serie-a/football";
 const MEDIA = "https://media-sdp.legaseriea.it";
 const COMP = "serie-a::Football_Competition::ec93b94f74294dc98ab5bcfd67fc0d88";
 
-// Build full rateable rosters from 2005/06 onward. Clean sheets are derived from
-// match results (available every season), so defenders/keepers get a real signal
-// even in older seasons where Opta's per-player defensive stats are thin.
-const FROM_YEAR = 2005;
+// Build full rateable rosters as far back as the API goes (1986/87). Clean
+// sheets are derived from match results (available every season), so
+// defenders/keepers get a real signal even in older seasons where Opta's
+// per-player defensive stats are thin (assists are absent pre-2010, so older
+// midfielders lean on goals + games + clean-sheet share).
+const FROM_YEAR = 1986;
 
 const POS = { 1: "Goalkeeper", 2: "Defender", 3: "Midfielder", 4: "Forward" };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -240,6 +243,7 @@ async function buildSeason(year, seasonId) {
 
 async function main() {
   mkdirSync(SEAS_DIR, { recursive: true });
+  mkdirSync(STAND_DIR, { recursive: true });
   const seasonsList = await get(`/competitions/${enc(COMP)}/seasons?locale=en-GB`);
   const allSeasons = (seasonsList?.seasons ?? [])
     .map((s) => ({ id: s.seasonId, year: String((s.seasonName || "").slice(0, 4)) }))
@@ -254,6 +258,7 @@ async function main() {
       const data = await buildSeason(s.year, s.id);
       if (!data) { console.log(`  ${seasonLabel(s.year)}: no data`); continue; }
       writeFileSync(join(SEAS_DIR, `${s.year}.json`), JSON.stringify({ rosters: data.rosters }));
+      writeFileSync(join(STAND_DIR, `${s.year}.json`), JSON.stringify({ standings: data.standings }));
       index.seasons.push({ year: s.year, label: data.label, teams: data.teams });
       const n = Object.values(data.rosters).reduce((a, r) => a + r.length, 0);
       console.log(`  ${data.label}: ${data.teams.length} clubs, ${n} players`);
