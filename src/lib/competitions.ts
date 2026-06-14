@@ -10,7 +10,7 @@
  * that are *not* on that platform can set `provider` to a different value and be
  * routed to a different client later.
  */
-export type Provider = "pl-sdp" | "laliga";
+export type Provider = "pl-sdp" | "laliga" | "seriea";
 
 export interface Competition {
   slug: string; // url segment, e.g. "premier-league"
@@ -61,8 +61,22 @@ export const COMPETITIONS: Competition[] = [
     accentInk: "#ffffff",
     badge: "🇪🇸",
   },
+  {
+    slug: "serie-a",
+    name: "Serie A",
+    shortName: "Serie A",
+    country: "Italy",
+    provider: "seriea",
+    sdpId: "",
+    dataPrefix: "seriea/",
+    currentSeason: "2025",
+    seasons: ["2025", "2024", "2023", "2022", "2021", "2020", "2019", "2018", "2017", "2016", "2015", "2014", "2013", "2012", "2011", "2010"],
+    enabled: true,
+    accent: "#2d7ff0",
+    accentInk: "#ffffff",
+    badge: "🇮🇹",
+  },
   // ---- Coming soon (UI placeholders; flip `enabled` once data is wired) ----
-  { slug: "serie-a", name: "Serie A", shortName: "Serie A", country: "Italy", provider: "pl-sdp", sdpId: "", dataPrefix: "", currentSeason: "2025", seasons: ["2025"], enabled: false, accent: "#38bdf8", accentInk: "#04220f", badge: "🇮🇹" },
   { slug: "bundesliga", name: "Bundesliga", shortName: "Bundesliga", country: "Germany", provider: "pl-sdp", sdpId: "", dataPrefix: "", currentSeason: "2025", seasons: ["2025"], enabled: false, accent: "#ffd166", accentInk: "#04220f", badge: "🇩🇪" },
   { slug: "ligue-1", name: "Ligue 1", shortName: "Ligue 1", country: "France", provider: "pl-sdp", sdpId: "", dataPrefix: "", currentSeason: "2025", seasons: ["2025"], enabled: false, accent: "#a78bfa", accentInk: "#04220f", badge: "🇫🇷" },
   { slug: "champions-league", name: "UEFA Champions League", shortName: "Champions League", country: "Europe", provider: "pl-sdp", sdpId: "", dataPrefix: "", currentSeason: "2025", seasons: ["2025"], enabled: false, accent: "#60a5fa", accentInk: "#04220f", badge: "🏆" },
