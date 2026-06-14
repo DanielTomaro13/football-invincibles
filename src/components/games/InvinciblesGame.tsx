@@ -42,6 +42,21 @@ function effRating(p: HistPlayer, slot: SlotPos): number {
   return p.rating * OUT_OF_POS;
 }
 
+// position-appropriate stat shown on the roster card
+function statLine(p: HistPlayer): string {
+  const pos = natOf(p);
+  if (pos === "GK") return `${p.cs}CS ${p.sv ?? 0}Sv`;
+  if (pos === "DEF") return `${p.cs}CS ${p.tk ?? 0}Tk`;
+  return `${p.g}G ${p.a}A`;
+}
+// position-appropriate stats shown in the modal
+function modalStats(p: HistPlayer): [string, string | number][] {
+  const pos = natOf(p);
+  if (pos === "GK") return [["Rating", p.rating.toFixed(1)], ["Clean sheets", p.cs], ["Saves", p.sv ?? 0], ["Apps", p.apps]];
+  if (pos === "DEF") return [["Rating", p.rating.toFixed(1)], ["Clean sheets", p.cs], ["Tackles", p.tk ?? 0], ["Intc", p.intc ?? 0], ["Apps", p.apps]];
+  return [["Rating", p.rating.toFixed(1)], ["Goals", p.g], ["Assists", p.a], ["Apps", p.apps], ["CS", p.cs]];
+}
+
 type Mode = "five" | "full" | "cap";
 const MODE_META: Record<Mode, { label: string; sub: string; respins: number; cap?: number }> = {
   five: { label: "5-a-side", sub: "5 starters + 1 sub", respins: 3 },
@@ -339,7 +354,7 @@ export default function InvinciblesGame() {
                         <span style={{ fontWeight: 900, color: "var(--accent)", minWidth: 26 }}>{p.rating.toFixed(0)}</span>
                         <span style={{ minWidth: 0 }}>
                           <span style={{ fontWeight: 700, display: "block", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontSize: ".82rem" }}>{p.name} {versatile && <span title="Versatile" style={{ color: "var(--gold)" }}>★</span>}</span>
-                          <span style={{ color: "var(--muted)", fontSize: ".7rem" }}>{natOf(p)} · {p.g}G {p.a}A{mode === "cap" ? ` · £${salaryOf(p.rating)}m` : ""}</span>
+                          <span style={{ color: "var(--muted)", fontSize: ".7rem" }}>{natOf(p)} · {statLine(p)}{mode === "cap" ? ` · £${salaryOf(p.rating)}m` : ""}</span>
                         </span>
                       </button>
                       <button onClick={() => setViewing({ p, source: "roster" })} disabled={spinning} title="Stats & position options" aria-label="View stats" style={{ background: "transparent", border: "none", color: "var(--muted)", cursor: "pointer", fontSize: "1.05rem", padding: "0 .15rem", lineHeight: 1 }}>ⓘ</button>
@@ -433,7 +448,7 @@ function PlayerModal({ v, openSlots, year, team, onAdd, onRemove, onClose }: {
   const age = p.born ? Number(year) - p.born : null;
   const boost = vBoost(p);
   const photo = `https://resources.premierleague.com/premierleague25/photos/players/110x140/${p.id}.png`;
-  const stats: [string, string | number][] = [["Rating", p.rating.toFixed(1)], ["Goals", p.g], ["Assists", p.a], ["Apps", p.apps], ["CS", p.cs]];
+  const stats = modalStats(p);
   return (
     <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.6)", display: "grid", placeItems: "center", zIndex: 100, padding: "1rem" }}>
       <div onClick={(e) => e.stopPropagation()} className="card pop" style={{ width: "min(420px,100%)", padding: "1.25rem", maxHeight: "85dvh", overflowY: "auto" }}>
@@ -446,7 +461,7 @@ function PlayerModal({ v, openSlots, year, team, onAdd, onRemove, onClose }: {
             <div style={{ color: "var(--muted)", fontSize: ".85rem" }}>{POS_NAME[natOf(p)]}{p.nat ? ` · ${p.nat}` : ""}{age ? ` · ${age}y` : ""}{p.shirt ? ` · #${p.shirt}` : ""}</div>
           </div>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 6, margin: "1rem 0" }}>
+        <div style={{ display: "grid", gridTemplateColumns: `repeat(${stats.length},1fr)`, gap: 6, margin: "1rem 0" }}>
           {stats.map(([l, val]) => (
             <div key={l} style={{ background: "var(--panel-2)", borderRadius: 8, padding: ".5rem .3rem", textAlign: "center" }}>
               <div style={{ fontWeight: 900, color: "var(--accent)" }}>{val}</div>

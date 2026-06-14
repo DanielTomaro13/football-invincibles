@@ -54,16 +54,28 @@ function composite(pos, s) {
     apps = num(s, "appearances"),
     shots = num(s, "totalShots", "total_shots"),
     passes = num(s, "totalPasses", "total_passes"),
-    cs = num(s, "cleanSheets", "clean_sheets");
+    cs = num(s, "cleanSheets", "clean_sheets"),
+    tklW = num(s, "tacklesWon"),
+    intc = num(s, "interceptions"),
+    clr = num(s, "totalClearances"),
+    blocks = num(s, "blocks", "blockedShots"),
+    recov = num(s, "recoveries"),
+    aerial = num(s, "aerialDuelsWon"),
+    saves = num(s, "savesMade"),
+    savesPen = num(s, "savesFromPenalty");
   switch (pos) {
     case "Forward":
       return g * 5 + a * 3 + shots * 0.25 + apps * 0.6;
     case "Midfielder":
-      return a * 4.5 + g * 3.5 + passes * 0.012 + apps * 0.7;
+      return a * 4.5 + g * 3.5 + passes * 0.012 + tklW * 0.3 + intc * 0.3 + apps * 0.6;
     case "Defender":
-      return cs * 2.5 + passes * 0.013 + apps * 1.1 + a * 2 + g * 2;
+      // clean sheets dominate (team defensive success) so a relegated defender
+      // who makes lots of tackles isn't rated like an elite one. Tackles,
+      // interceptions, blocks etc. are smaller tie-breakers; goals/assists add.
+      return cs * 8 + tklW * 0.22 + intc * 0.22 + clr * 0.07 + blocks * 0.22 + recov * 0.03 + aerial * 0.1 + (g + a) * 2 + apps * 0.4;
     case "Goalkeeper":
-      return cs * 4 + apps * 1.4;
+      // clean sheets first, then shot-stopping volume and penalty saves
+      return cs * 8 + saves * 0.15 + savesPen * 4 + apps * 0.4;
     default:
       return apps * 0.6;
   }
@@ -115,6 +127,9 @@ async function buildSeason(year) {
         a: Math.round(num(st, "goalAssists", "goal_assists")),
         apps: Math.round(num(st, "appearances")),
         cs: Math.round(num(st, "cleanSheets", "clean_sheets")),
+        tk: Math.round(num(st, "tacklesWon")),
+        intc: Math.round(num(st, "interceptions")),
+        sv: Math.round(num(st, "savesMade")),
         _c: composite(p.position, st),
         teamId: team.id,
       };
@@ -130,13 +145,11 @@ async function buildSeason(year) {
     if (!byPos.has(p.pos)) byPos.set(p.pos, []);
     byPos.get(p.pos).push(p);
   }
-  for (const [posKey, list] of byPos) {
+  for (const [, list] of byPos) {
     const sorted = list.map((p) => p._c).sort((a, b) => a - b);
-    // Attackers (FWD/MID) are ranked by goals & assists, which genuinely
-    // separate quality, so they can reach the high 90s. Defenders & keepers
-    // have no quality signal in this data (just minutes/clean sheets), so a
-    // full-season regular shouldn't auto-rate 90+ — compress their scale.
-    const isBack = posKey === "Defender" || posKey === "Goalkeeper";
+    // Every position is ranked within its own pool, so the best player in each
+    // can reach the high 90s — attackers on goals/assists, defenders & keepers
+    // on clean sheets and defensive actions (no artificial cap on backs).
     for (const p of list) {
       let lo = 0,
         hi = sorted.length;
@@ -146,9 +159,7 @@ async function buildSeason(year) {
         else hi = m;
       }
       const pct = sorted.length ? lo / sorted.length : 0.5;
-      const raw = isBack
-        ? 44 + Math.pow(pct, 1.7) * 46 // backs: ~44–90
-        : 45 + Math.pow(pct, 1.5) * 53; // attackers: ~45–98
+      const raw = 45 + Math.pow(pct, 1.5) * 53;
       // reliability: a player who barely featured shouldn't be rated like a
       // regular — pull low-minutes players down toward a squad-filler anchor.
       // ~half a season (20 apps) earns full credit.
