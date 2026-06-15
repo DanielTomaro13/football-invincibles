@@ -114,9 +114,12 @@ function buildComp({ name, short, prefix }) {
   // collect this league's Rating Duel entries (top-rated recognisable seasons).
   // PL history rosters often lack a photo url — reconstruct it from the id.
   const plPhoto = (id) => (prefix === "" ? `https://resources.premierleague.com/premierleague25/photos/players/110x140/${id}.png` : null);
+  // attacking players only — ratings are position-relative, so mixing a top
+  // defender (also ~98) against a forward in the duel reads as "Dunne > Messi".
   const entries = [];
   for (const [id, e] of Object.entries(players))
-    for (const s of e.s) if (s[8] != null && s[8] >= 78 && s[3] >= 18) entries.push({ n: e.n, ph: e.ph || plPhoto(id), r: s[8], c: s[2], l: short, y: s[0] });
+    if (e.p === "Forward" || e.p === "Midfielder")
+      for (const s of e.s) if (s[8] != null && s[8] >= 80 && s[3] >= 18) entries.push({ n: e.n, ph: e.ph || plPhoto(id), r: s[8], c: s[2], l: short, y: s[0] });
   entries.sort((a, b) => b.r - a.r);
   duelPool.push(...entries.slice(0, 1000));
 

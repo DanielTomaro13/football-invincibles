@@ -18,6 +18,7 @@
 import { writeFileSync, mkdirSync, rmSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
+import { applyRatings } from "./rating.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const OUT = join(__dirname, "..", "public", "data", "laliga");
@@ -71,19 +72,6 @@ const num = (m, ...keys) => {
   return 0;
 };
 
-function composite(pos, s) {
-  const g = num(s, "goals"), a = num(s, "goal_assists"), apps = num(s, "appearances"),
-    sot = num(s, "shots_on_target_inc_goals"), pas = num(s, "total_passes"), cs = num(s, "clean_sheets"),
-    tk = num(s, "tackles_won"), intc = num(s, "interceptions"), clr = num(s, "total_clearances"),
-    saves = num(s, "saves");
-  switch (pos) {
-    case "Forward": return g * 5 + a * 3 + sot * 0.25 + apps * 0.6;
-    case "Midfielder": return a * 4.5 + g * 3.5 + pas * 0.012 + tk * 0.3 + intc * 0.3 + apps * 0.6;
-    case "Defender": return cs * 8 + tk * 0.22 + intc * 0.22 + clr * 0.07 + (g + a) * 2 + apps * 0.4;
-    case "Goalkeeper": return cs * 8 + saves * 0.15 + apps * 0.4;
-    default: return apps * 0.6;
-  }
-}
 
 // Current-season fixtures/results. The matches feed mixes competitions, so we
 // filter to competition=primera-division (the league) — that returns exactly the
@@ -190,27 +178,13 @@ async function buildSeason({ year, slug }) {
       sv: Math.round(num(s, "saves")),
       gc: Math.round(num(s, "goals_conceded")),
       yc: Math.round(num(s, "yellow_cards")),
-      _c: composite(posName, s),
     };
     (rosters[tid] ??= []).push(row);
     all.push(row);
   }
 
-  // rate per position (same engine as PL)
-  const byPos = new Map();
-  for (const p of all) (byPos.get(p.pos) ?? byPos.set(p.pos, []).get(p.pos)).push(p);
-  for (const [, list] of byPos) {
-    const sorted = list.map((p) => p._c).sort((a, b) => a - b);
-    for (const p of list) {
-      let lo = 0, hi = sorted.length;
-      while (lo < hi) { const m = (lo + hi) >> 1; if (sorted[m] < p._c) lo = m + 1; else hi = m; }
-      const pct = sorted.length ? lo / sorted.length : 0.5;
-      const raw = 45 + Math.pow(pct, 1.5) * 53;
-      const reliability = Math.min(1, (p.apps || 0) / 20);
-      const rating = 50 + (raw - 50) * (0.35 + 0.65 * reliability);
-      p.rating = Math.round(Math.max(42, Math.min(99, rating)) * 10) / 10;
-    }
-  }
+  // rate per position from ESPN-style fantasy points (see pipeline/rating.mjs)
+  applyRatings(all);
   for (const tid of Object.keys(rosters)) {
     rosters[tid] = rosters[tid].map(({ _c, ...r }) => r).sort((a, b) => b.rating - a.rating);
   }

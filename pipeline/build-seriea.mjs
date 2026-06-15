@@ -21,6 +21,7 @@
 import { writeFileSync, mkdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
+import { applyRatings } from "./rating.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const OUT = join(__dirname, "..", "public", "data", "seriea");
@@ -66,23 +67,6 @@ const num = (m, ...keys) => { for (const k of keys) { const v = m[k]; if (v != n
 const mediaUrl = (rel) => (rel ? `${MEDIA}/${rel}` : null);
 
 // Identical engine to the PL / La Liga pipelines now that clean sheets exist
-// (derived from match results), so defenders/keepers are clean-sheet dominant.
-function composite(pos, m, cs) {
-  const g = num(m, "goals", "Goals"), a = num(m, "assists", "Goal Assists"),
-    apps = num(m, "games-played", "Games Played"),
-    sot = num(m, "on-target-scoring-attempts", "Shots On Target ( inc goals )"),
-    pas = num(m, "Total Passes", "Total Successful Passes ( Excl Crosses & Corners )"),
-    tk = num(m, "tackles-won", "Tackles Won"), intc = num(m, "Interceptions"),
-    clr = num(m, "Total Clearances", "total-cleareance"), sv = num(m, "saves");
-  switch (pos) {
-    case "Forward": return g * 5 + a * 3 + sot * 0.25 + apps * 0.6;
-    case "Midfielder": return a * 4.5 + g * 3.5 + pas * 0.012 + tk * 0.3 + intc * 0.3 + apps * 0.6;
-    case "Defender": return cs * 8 + tk * 0.22 + intc * 0.22 + clr * 0.07 + (g + a) * 2 + apps * 0.4;
-    case "Goalkeeper": return cs * 8 + sv * 0.15 + apps * 0.4;
-    default: return apps * 0.6;
-  }
-}
-
 // Pull every match in a season and derive per-team clean sheets + games played
 // (a clean sheet = the opponent scored 0 in a finished match).
 async function fetchMatches(seasonId) {
@@ -194,27 +178,13 @@ async function buildSeason(year, seasonId) {
       sv: Math.round(num(m, "saves")),
       gc: Math.round(num(m, "goals-conceded")),
       yc: Math.round(num(m, "yellow-cards", "Yellow Cards")),
-      _c: composite(pos, m, cs),
     };
     (rosters[tid] ??= []).push(row);
     all.push(row);
   }
 
-  // rate per position (identical engine to PL / La Liga)
-  const byPos = new Map();
-  for (const p of all) (byPos.get(p.pos) ?? byPos.set(p.pos, []).get(p.pos)).push(p);
-  for (const [, list] of byPos) {
-    const sorted = list.map((p) => p._c).sort((a, b) => a - b);
-    for (const p of list) {
-      let lo = 0, hi = sorted.length;
-      while (lo < hi) { const mid = (lo + hi) >> 1; if (sorted[mid] < p._c) lo = mid + 1; else hi = mid; }
-      const pct = sorted.length ? lo / sorted.length : 0.5;
-      const raw = 45 + Math.pow(pct, 1.5) * 53;
-      const reliability = Math.min(1, (p.apps || 0) / 20);
-      const rating = 50 + (raw - 50) * (0.35 + 0.65 * reliability);
-      p.rating = Math.round(Math.max(42, Math.min(99, rating)) * 10) / 10;
-    }
-  }
+  // rate per position from ESPN-style fantasy points (see pipeline/rating.mjs)
+  applyRatings(all);
   for (const tid of Object.keys(rosters)) {
     rosters[tid] = rosters[tid].map(({ _c, ...r }) => r).sort((a, b) => b.rating - a.rating);
   }
