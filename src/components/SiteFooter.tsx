@@ -33,7 +33,9 @@ export default function SiteFooter() {
             <strong style={{ color: "var(--text)" }}>Explore</strong>
             <Link href="/tables">Tables</Link>
             <Link href="/stats">Stats</Link>
+            <Link href="/records">All-Time Records</Link>
             <Link href="/players">Players</Link>
+            <Link href="/clubs">Clubs</Link>
             <Link href="/matches">Fixtures</Link>
             <Link href="/history">Season Archive</Link>
           </nav>

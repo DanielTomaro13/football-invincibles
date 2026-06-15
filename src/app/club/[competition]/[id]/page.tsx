@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { COMPETITIONS, getCompetition, seasonLabel } from "@/lib/competitions";
-import { pageMeta } from "@/lib/seo";
+import { pageMeta, SITE } from "@/lib/seo";
 import { safeId } from "@/lib/ids";
 import { teamIndex, fullTeamId, type TeamEntry } from "@/lib/server-data";
 import ClubSquad from "@/components/ClubSquad";
+import JsonLd from "@/components/JsonLd";
 
 type Params = Promise<{ competition: string; id: string }>;
 
@@ -44,9 +45,18 @@ export default async function ClubPage({ params }: { params: Params }) {
   const titles = entry.s.filter((s) => s[1] === 1).length;
   const best = Math.min(...entry.s.map((s) => s[1]));
   const years = entry.s.map((s) => s[0]);
+  const ld = [
+    { "@context": "https://schema.org", "@type": "SportsTeam", name: entry.n, sport: "Association football", memberOf: { "@type": "SportsOrganization", name: comp!.name }, logo: entry.b || undefined, url: `${SITE.url}/club/${competition}/${id}` },
+    { "@context": "https://schema.org", "@type": "BreadcrumbList", itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Home", item: SITE.url },
+      { "@type": "ListItem", position: 2, name: `${comp!.name} Clubs`, item: `${SITE.url}/clubs` },
+      { "@type": "ListItem", position: 3, name: entry.n },
+    ] },
+  ];
 
   return (
     <div style={{ display: "grid", gap: "1.5rem" }}>
+      <JsonLd data={ld} />
       <div className="card" style={{ padding: "1.5rem", display: "flex", gap: 18, alignItems: "center", flexWrap: "wrap" }}>
         {entry.b && /* eslint-disable-next-line @next/next/no-img-element */ <img src={entry.b} alt="" width={64} height={64} style={{ objectFit: "contain" }} />}
         <div>

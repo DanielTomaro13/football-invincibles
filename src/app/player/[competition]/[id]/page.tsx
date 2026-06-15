@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { COMPETITIONS, getCompetition, seasonLabel } from "@/lib/competitions";
-import { pageMeta } from "@/lib/seo";
+import { pageMeta, SITE } from "@/lib/seo";
 import { safeId } from "@/lib/ids";
 import { playerIndex, fullPlayerId, notablePlayerIds, type PlayerEntry } from "@/lib/server-data";
 import JsonLd from "@/components/JsonLd";
@@ -49,11 +49,18 @@ export default async function PlayerPage({ params }: { params: Params }) {
   const tot = entry.s.reduce((a, s) => ({ apps: a.apps + s[3], g: a.g + s[4], as: a.as + s[5], cs: a.cs + s[6] }), { apps: 0, g: 0, as: 0, cs: 0 });
   const best = entry.s.reduce((m, s) => Math.max(m, s[8] ?? 0), 0);
   const isGK = entry.p === "Goalkeeper";
-  const personLd = { "@context": "https://schema.org", "@type": "Person", name: entry.n, nationality: entry.na, jobTitle: "Professional footballer", image: photo || undefined };
+  const ld = [
+    { "@context": "https://schema.org", "@type": "Person", name: entry.n, nationality: entry.na, jobTitle: "Professional footballer", image: photo || undefined, url: `${SITE.url}/player/${competition}/${id}` },
+    { "@context": "https://schema.org", "@type": "BreadcrumbList", itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Home", item: SITE.url },
+      { "@type": "ListItem", position: 2, name: `${comp!.name} Players`, item: `${SITE.url}/players` },
+      { "@type": "ListItem", position: 3, name: entry.n },
+    ] },
+  ];
 
   return (
     <div style={{ display: "grid", gap: "1.5rem" }}>
-      <JsonLd data={personLd} />
+      <JsonLd data={ld} />
       <div className="card" style={{ padding: "1.5rem", display: "flex", gap: 18, alignItems: "center", flexWrap: "wrap" }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={photo} alt={entry.n} width={92} height={116} loading="lazy" style={{ borderRadius: 12, background: "var(--panel-2)", objectFit: "cover" }} />

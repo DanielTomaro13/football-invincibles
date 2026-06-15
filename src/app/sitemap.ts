@@ -13,7 +13,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const entry = (path: string, priority: number, changeFrequency: "daily" | "weekly" = "daily") => ({ url: SITE.url + path, lastModified: now, changeFrequency, priority });
 
   const out: MetadataRoute.Sitemap = [
-    "", "/tables", "/stats", "/players", "/matches", "/history", "/games", "/leaderboard", "/competitions", "/about", "/contact", "/privacy",
+    "", "/tables", "/stats", "/records", "/players", "/clubs", "/matches", "/history", "/games", "/leaderboard", "/competitions", "/about", "/contact", "/privacy",
   ].map((p) => entry(p, p === "" ? 1 : 0.8));
 
   out.push(...GAMES.map((g) => entry(`/games/${g}`, 0.7)));

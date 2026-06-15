@@ -2,9 +2,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { COMPETITIONS, getCompetition } from "@/lib/competitions";
-import { pageMeta } from "@/lib/seo";
+import { pageMeta, SITE } from "@/lib/seo";
 import { safeId } from "@/lib/ids";
 import { matchFile, listMatchIds, teamIndex, notablePlayerIds } from "@/lib/server-data";
+import JsonLd from "@/components/JsonLd";
 
 type Params = Promise<{ competition: string; id: string }>;
 const EV_ICON: Record<string, string> = { goal: "⚽", pen: "⚽", og: "⚽", yellow: "🟨", red: "🟥" };
@@ -45,6 +46,14 @@ export default async function MatchPage({ params }: { params: Params }) {
   const badge = (tid: string) => badges[tid]?.b || "";
   const slug = comp!.slug;
   const hasPage = new Set(notablePlayerIds(comp!.dataPrefix));
+  const ld = [
+    { "@context": "https://schema.org", "@type": "SportsEvent", name: `${m.home.name} vs ${m.away.name}`, sport: "Association football", startDate: m.date || undefined, ...(m.ground ? { location: { "@type": "Place", name: m.ground } } : {}), competitor: [{ "@type": "SportsTeam", name: m.home.name }, { "@type": "SportsTeam", name: m.away.name }], url: `${SITE.url}/match/${competition}/${id}` },
+    { "@context": "https://schema.org", "@type": "BreadcrumbList", itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Home", item: SITE.url },
+      { "@type": "ListItem", position: 2, name: `${comp!.name} Fixtures`, item: `${SITE.url}/matches` },
+      { "@type": "ListItem", position: 3, name: `${m.home.name} ${m.home.score}-${m.away.score} ${m.away.name}` },
+    ] },
+  ];
 
   const TeamHead = ({ side, align }: { side: any; align: "flex-start" | "flex-end" }) => (
     <Link href={`/club/${slug}/${safeId(side.id)}`} style={{ display: "flex", alignItems: "center", gap: 8, justifyContent: align, fontWeight: 800 }}>
@@ -69,6 +78,7 @@ export default async function MatchPage({ params }: { params: Params }) {
 
   return (
     <div style={{ display: "grid", gap: "1.5rem" }}>
+      <JsonLd data={ld} />
       <Link href="/matches" style={{ color: "var(--accent)", fontSize: ".88rem" }}>← Fixtures</Link>
 
       <div className="card" style={{ padding: "1.25rem", display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center", gap: 12 }}>

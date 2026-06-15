@@ -4,7 +4,9 @@ import LeagueSwitch from "@/components/LeagueSwitch";
 const NAV = [
   { href: "/tables", label: "Tables" },
   { href: "/stats", label: "Stats" },
+  { href: "/records", label: "Records" },
   { href: "/players", label: "Players" },
+  { href: "/clubs", label: "Clubs" },
   { href: "/matches", label: "Fixtures" },
   { href: "/history", label: "History" },
   { href: "/games", label: "Games" },
