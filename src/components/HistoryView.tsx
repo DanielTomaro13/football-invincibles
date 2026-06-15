@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useCompetition } from "@/components/CompetitionProvider";
 import { seasonLabel } from "@/lib/competitions";
 import { loadSeasonStandings, loadSeasonRosters, loadHistoryIndex, type HistPlayer } from "@/lib/history";
@@ -97,10 +98,10 @@ export default function HistoryView() {
                       <tr key={e.team.id}>
                         <td style={{ fontWeight: 700, color: o.position === 1 ? "var(--gold)" : "var(--muted)" }}>{o.position}</td>
                         <td>
-                          <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                          <Link href={`/team?c=${comp.slug}&id=${e.team.id}`} style={{ display: "inline-flex", alignItems: "center", gap: 6, fontWeight: 600 }}>
                             {e.team.badge && /* eslint-disable-next-line @next/next/no-img-element */ <img src={e.team.badge} alt="" width={16} height={16} loading="lazy" onError={(ev) => { (ev.target as HTMLImageElement).style.visibility = "hidden"; }} />}
                             {e.team.shortName || e.team.name}
-                          </span>
+                          </Link>
                         </td>
                         <td style={{ textAlign: "center" }}>{o.played}</td>
                         <td style={{ textAlign: "center" }}>{o.won}</td>
@@ -126,11 +127,13 @@ export default function HistoryView() {
             ) : (
               <ol style={{ listStyle: "none", margin: 0, padding: 0 }}>
                 {top.map(({ p, team }) => (
-                  <li key={String(p.id)} style={{ display: "flex", alignItems: "center", gap: 10, padding: ".5rem 1rem", borderBottom: "1px solid var(--border)" }}>
-                    <span className="chip" style={{ minWidth: 42, justifyContent: "center" }}>{POS_ABBR[p.pos] || p.pos}</span>
-                    <span style={{ flex: 1, fontWeight: 600 }}>{p.name}</span>
-                    <span style={{ color: "var(--muted)", fontSize: ".82rem" }}>{team}</span>
-                    <strong style={{ color: "var(--accent)", minWidth: 34, textAlign: "right" }}>{p.rating}</strong>
+                  <li key={String(p.id)}>
+                    <Link href={`/player?c=${comp.slug}&id=${p.id}`} style={{ display: "flex", alignItems: "center", gap: 10, padding: ".5rem 1rem", borderBottom: "1px solid var(--border)" }}>
+                      <span className="chip" style={{ minWidth: 42, justifyContent: "center", flexShrink: 0 }}>{POS_ABBR[p.pos] || p.pos}</span>
+                      <span style={{ flex: 1, minWidth: 0, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{p.name}</span>
+                      <span style={{ color: "var(--muted)", fontSize: ".82rem", flexShrink: 0 }}>{team}</span>
+                      <strong style={{ color: "var(--accent)", minWidth: 34, textAlign: "right", flexShrink: 0 }}>{p.rating}</strong>
+                    </Link>
                   </li>
                 ))}
               </ol>

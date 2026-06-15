@@ -60,7 +60,7 @@ export default function PlayersView() {
         </div>
         <LeagueSwitch />
       </div>
-      <PlayersBrowser players={players} linkable={comp.slug === "premier-league"} />
+      <PlayersBrowser players={players} linkable compSlug={comp.slug} />
     </div>
   );
 }

@@ -5,7 +5,6 @@ import { useCompetition } from "@/components/CompetitionProvider";
 import LeagueSwitch from "@/components/LeagueSwitch";
 import { loadSeasonRosters, type HistPlayer } from "@/lib/history";
 import { seasonLabel } from "@/lib/competitions";
-import { slugify } from "@/lib/format";
 
 const plPhoto = (id: string | number) => `https://resources.premierleague.com/premierleague25/photos/players/40x40/${id}.png`;
 
@@ -48,8 +47,6 @@ export default function StatsView() {
       })),
     [players]
   );
-  const isPL = comp.slug === "premier-league";
-
   return (
     <div style={{ display: "grid", gap: "1.5rem" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 12, flexWrap: "wrap" }}>
@@ -68,20 +65,16 @@ export default function StatsView() {
               {b.rows.map((r, i) => {
                 const inner = (
                   <>
-                    <span style={{ width: 18, color: "var(--muted)", fontWeight: 700 }}>{i + 1}</span>
+                    <span style={{ width: 18, flexShrink: 0, color: "var(--muted)", fontWeight: 700 }}>{i + 1}</span>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={r.p.photo || plPhoto(r.p.id)} alt="" width={26} height={26} loading="lazy" style={{ borderRadius: "50%", background: "var(--panel-2)", objectFit: "cover" }} />
-                    <span style={{ flex: 1, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{r.p.name}</span>
-                    <strong style={{ color: "var(--accent)", minWidth: 28, textAlign: "right" }}>{r.v}</strong>
+                    <img src={r.p.photo || plPhoto(r.p.id)} alt="" width={26} height={26} loading="lazy" style={{ borderRadius: "50%", background: "var(--panel-2)", objectFit: "cover", flexShrink: 0 }} />
+                    <span style={{ flex: 1, minWidth: 0, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{r.p.name}</span>
+                    <strong style={{ color: "var(--accent)", minWidth: 30, textAlign: "right", flexShrink: 0 }}>{r.v}</strong>
                   </>
                 );
                 return (
                   <li key={String(r.p.id)}>
-                    {isPL ? (
-                      <Link href={`/players/${r.p.id}/${slugify(r.p.name)}`} style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 4px", borderRadius: 8 }}>{inner}</Link>
-                    ) : (
-                      <span style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 4px" }}>{inner}</span>
-                    )}
+                    <Link href={`/player?c=${comp.slug}&id=${r.p.id}`} style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 4px", borderRadius: 8 }}>{inner}</Link>
                   </li>
                 );
               })}

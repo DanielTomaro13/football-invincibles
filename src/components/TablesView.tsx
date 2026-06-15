@@ -1,9 +1,10 @@
 "use client";
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useCompetition } from "@/components/CompetitionProvider";
 import LeagueSwitch from "@/components/LeagueSwitch";
 import { loadStandings } from "@/lib/history";
-import { seasonLabel } from "@/lib/competitions";
+import { getCompetition, seasonLabel } from "@/lib/competitions";
 
 const plBadge = (id: string) => `https://resources.premierleague.com/premierleague25/badges/${id}.svg`;
 
@@ -12,10 +13,16 @@ interface Entry {
   overall: { position: number; played: number; won: number; drawn: number; lost: number; goalsFor: number; goalsAgainst: number; points: number; startingPosition: number };
 }
 
-export default function TablesView() {
-  const { comp } = useCompetition();
+// `forceSlug` pins the table to one league (the /tables/<competition> SEO pages);
+// without it the table follows the global league switch.
+export default function TablesView({ forceSlug }: { forceSlug?: string }) {
+  const { comp: globalComp, setComp } = useCompetition();
+  const comp = (forceSlug && getCompetition(forceSlug)) || globalComp;
   const [rows, setRows] = useState<Entry[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // keep the global switch in sync when arriving on a pinned league URL
+  useEffect(() => { if (forceSlug && forceSlug !== globalComp.slug) setComp(forceSlug); }, [forceSlug, globalComp.slug, setComp]);
 
   useEffect(() => {
     setLoading(true);
@@ -47,11 +54,11 @@ export default function TablesView() {
                 <tr key={e.team.id}>
                   <td>{e.overall.position} {move !== 0 && <span className={move > 0 ? "hl-up" : "hl-down"} style={{ fontSize: ".7rem" }}>{move > 0 ? "▲" : "▼"}</span>}</td>
                   <td style={{ fontWeight: 600 }}>
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+                    <Link href={`/team?c=${comp.slug}&id=${e.team.id}`} style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={e.team.badge || plBadge(e.team.id)} alt="" width={20} height={20} loading="lazy" />
+                      <img src={e.team.badge || plBadge(e.team.id)} alt="" width={20} height={20} loading="lazy" onError={(ev) => { (ev.target as HTMLImageElement).style.visibility = "hidden"; }} />
                       {e.team.name}
-                    </span>
+                    </Link>
                   </td>
                   <td>{e.overall.played}</td><td>{e.overall.won}</td><td>{e.overall.drawn}</td><td>{e.overall.lost}</td>
                   <td>{e.overall.goalsFor}</td><td>{e.overall.goalsAgainst}</td>

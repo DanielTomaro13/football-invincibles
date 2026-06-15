@@ -1,7 +1,6 @@
 "use client";
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { slugify } from "@/lib/format";
 
 export interface BrowsePlayer {
   id: number | string;
@@ -17,7 +16,7 @@ export interface BrowsePlayer {
 
 const POS = ["All", "Goalkeeper", "Defender", "Midfielder", "Forward"];
 
-export default function PlayersBrowser({ players, linkable = true }: { players: BrowsePlayer[]; linkable?: boolean }) {
+export default function PlayersBrowser({ players, linkable = true, compSlug = "premier-league" }: { players: BrowsePlayer[]; linkable?: boolean; compSlug?: string }) {
   const [q, setQ] = useState("");
   const [pos, setPos] = useState("All");
 
@@ -90,7 +89,7 @@ export default function PlayersBrowser({ players, linkable = true }: { players: 
           );
           const style = { padding: ".8rem", display: "flex", gap: 10, alignItems: "center" } as const;
           return linkable ? (
-            <Link key={String(p.id)} href={`/players/${p.id}/${slugify(p.name)}`} className="card" style={style}>{inner}</Link>
+            <Link key={String(p.id)} href={`/player?c=${compSlug}&id=${p.id}`} className="card" style={style}>{inner}</Link>
           ) : (
             <div key={String(p.id)} className="card" style={style}>{inner}</div>
           );
