@@ -24,7 +24,9 @@ export default function MatchDetail() {
   useEffect(() => {
     if (!comp || !id) { setMissing(true); return; }
     setM(null); setMissing(false);
-    fetch(`/data/${comp.dataPrefix}matches/${id}.json`, { cache: "force-cache" })
+    // Serie A match ids contain "::"; the file is named after the trailing hex.
+    const safeId = id.includes("::") ? id.split("::").pop() : id;
+    fetch(`/data/${comp.dataPrefix}matches/${safeId}.json`, { cache: "force-cache" })
       .then((r) => (r.ok ? r.json() : Promise.reject()))
       .then(setM)
       .catch(() => setMissing(true));

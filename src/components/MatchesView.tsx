@@ -66,7 +66,7 @@ export default function MatchesView() {
           {comp.name} · {seasonLabel(comp.currentSeason)} · {weeks} matchweeks
         </p>
       </div>
-      {matches ? <MatchweekView matches={matches} detailSlug={comp.slug === "premier-league" ? comp.slug : undefined} /> : <p style={{ color: "var(--muted)" }}>Loading fixtures…</p>}
+      {matches ? <MatchweekView matches={matches} detailSlug={comp.slug} /> : <p style={{ color: "var(--muted)" }}>Loading fixtures…</p>}
     </div>
   );
 }
