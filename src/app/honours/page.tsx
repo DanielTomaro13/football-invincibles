@@ -4,6 +4,7 @@ import { COMPETITIONS, seasonLabel } from "@/lib/competitions";
 import { pageMeta } from "@/lib/seo";
 import { safeId } from "@/lib/ids";
 import { teamIndex } from "@/lib/server-data";
+import LeaguePanes from "@/components/LeaguePanes";
 
 export const metadata: Metadata = pageMeta({
   title: "Roll of Honour — League Champions by Season",
@@ -13,13 +14,8 @@ export const metadata: Metadata = pageMeta({
 });
 
 export default function HonoursPage() {
-  return (
-    <div style={{ display: "grid", gap: "2rem" }}>
-      <div>
-        <h1 style={{ fontSize: "1.9rem", fontWeight: 900, margin: "0 0 .25rem" }}>Roll of Honour</h1>
-        <p style={{ color: "var(--muted)", margin: 0 }}>League champions season by season, and the all-time title count per club.</p>
-      </div>
-      {COMPETITIONS.filter((c) => c.enabled).map((c) => {
+  const panes = COMPETITIONS.filter((c) => c.enabled).map((c) => {
+    const node = (() => {
         const teams = teamIndex(c.dataPrefix);
         // year -> champion team id, and title tally
         const champOf: Record<string, string> = {};
@@ -67,7 +63,17 @@ export default function HonoursPage() {
             <p style={{ color: "var(--muted)", fontSize: ".78rem", margin: "8px 2px 0" }}>Within the seasons we cover ({seasonLabel(c.seasons[c.seasons.length - 1])}–{seasonLabel(c.seasons[0])}).</p>
           </section>
         );
-      })}
+    })();
+    return { slug: c.slug, node };
+  });
+
+  return (
+    <div style={{ display: "grid", gap: "1.25rem" }}>
+      <div>
+        <h1 style={{ fontSize: "1.9rem", fontWeight: 900, margin: "0 0 .25rem" }}>Roll of Honour</h1>
+        <p style={{ color: "var(--muted)", margin: 0 }}>League champions season by season, and the all-time title count per club.</p>
+      </div>
+      <LeaguePanes panes={panes} />
     </div>
   );
 }

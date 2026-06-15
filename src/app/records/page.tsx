@@ -4,6 +4,7 @@ import { COMPETITIONS } from "@/lib/competitions";
 import { pageMeta } from "@/lib/seo";
 import { safeId } from "@/lib/ids";
 import { playerIndex } from "@/lib/server-data";
+import LeaguePanes from "@/components/LeaguePanes";
 
 export const metadata: Metadata = pageMeta({
   title: "All-Time Records — Top Scorers & Appearances",
@@ -42,22 +43,27 @@ function Board({ slug, title, unit, rows }: { slug: string; title: string; unit:
 }
 
 export default function RecordsPage() {
+  const panes = COMPETITIONS.filter((c) => c.enabled).map((c) => ({
+    slug: c.slug,
+    node: (
+      <section>
+        <h2 style={{ fontSize: "1.3rem", fontWeight: 800, margin: "0 0 12px" }}>{c.badge} {c.name} <span style={{ color: "var(--muted)", fontWeight: 600, fontSize: ".85rem" }}>· {c.seasons.length} seasons</span></h2>
+        <div style={{ display: "grid", gap: 16, gridTemplateColumns: "repeat(auto-fill,minmax(300px,1fr))" }}>
+          <Board slug={c.slug} title="🥅 Top scorers" unit="gls" rows={board(c.dataPrefix, (s) => s[4])} />
+          <Board slug={c.slug} title="🅰️ Most assists" unit="ast" rows={board(c.dataPrefix, (s) => s[5])} />
+          <Board slug={c.slug} title="👕 Most appearances" unit="app" rows={board(c.dataPrefix, (s) => s[3])} />
+        </div>
+      </section>
+    ),
+  }));
+
   return (
-    <div style={{ display: "grid", gap: "2rem" }}>
+    <div style={{ display: "grid", gap: "1.25rem" }}>
       <div>
         <h1 style={{ fontSize: "1.9rem", fontWeight: 900, margin: "0 0 .25rem" }}>All-Time Records</h1>
-        <p style={{ color: "var(--muted)", margin: 0 }}>Career totals across every season we cover — top scorers, assist-makers and appearance-makers per league.</p>
+        <p style={{ color: "var(--muted)", margin: 0 }}>Career totals across every season we cover — top scorers, assist-makers and appearance-makers.</p>
       </div>
-      {COMPETITIONS.filter((c) => c.enabled).map((c) => (
-        <section key={c.slug}>
-          <h2 style={{ fontSize: "1.3rem", fontWeight: 800, margin: "0 0 12px" }}>{c.badge} {c.name} <span style={{ color: "var(--muted)", fontWeight: 600, fontSize: ".85rem" }}>· {c.seasons.length} seasons</span></h2>
-          <div style={{ display: "grid", gap: 16, gridTemplateColumns: "repeat(auto-fill,minmax(300px,1fr))" }}>
-            <Board slug={c.slug} title="🥅 Top scorers" unit="gls" rows={board(c.dataPrefix, (s) => s[4])} />
-            <Board slug={c.slug} title="🅰️ Most assists" unit="ast" rows={board(c.dataPrefix, (s) => s[5])} />
-            <Board slug={c.slug} title="👕 Most appearances" unit="app" rows={board(c.dataPrefix, (s) => s[3])} />
-          </div>
-        </section>
-      ))}
+      <LeaguePanes panes={panes} />
     </div>
   );
 }
