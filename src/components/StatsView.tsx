@@ -5,6 +5,7 @@ import { useCompetition } from "@/components/CompetitionProvider";
 import LeagueSwitch from "@/components/LeagueSwitch";
 import { loadSeasonRosters, type HistPlayer } from "@/lib/history";
 import { seasonLabel } from "@/lib/competitions";
+import { safeId } from "@/lib/ids";
 
 const plPhoto = (id: string | number) => `https://resources.premierleague.com/premierleague25/photos/players/40x40/${id}.png`;
 
@@ -74,7 +75,7 @@ export default function StatsView() {
                 );
                 return (
                   <li key={String(r.p.id)}>
-                    <Link href={`/player?c=${comp.slug}&id=${r.p.id}`} style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 4px", borderRadius: 8 }}>{inner}</Link>
+                    <Link href={`/player/${comp.slug}/${safeId(r.p.id)}`} style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 4px", borderRadius: 8 }}>{inner}</Link>
                   </li>
                 );
               })}

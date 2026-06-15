@@ -2,6 +2,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { teamBadge } from "@/lib/api-client";
+import { safeId } from "@/lib/ids";
 import type { LocalMatch } from "@/lib/local";
 
 // `detailSlug` makes each result clickable through to its /match page (only set
@@ -49,7 +50,7 @@ export default function MatchweekView({ matches, detailSlug }: { matches: LocalM
           );
           const gs = { display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center", gap: 10, padding: ".7rem 1rem", borderBottom: "1px solid var(--border)" } as const;
           return detailSlug
-            ? <Link key={m.id} href={`/match?c=${detailSlug}&id=${m.id}`} style={gs}>{row}</Link>
+            ? <Link key={m.id} href={`/match/${detailSlug}/${safeId(m.id)}`} style={gs}>{row}</Link>
             : <div key={m.id} style={gs}>{row}</div>;
         })}
         {shown.length === 0 && <div style={{ padding: "1rem", color: "var(--muted)" }}>No matches.</div>}

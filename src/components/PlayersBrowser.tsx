@@ -1,6 +1,7 @@
 "use client";
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { safeId } from "@/lib/ids";
 
 export interface BrowsePlayer {
   id: number | string;
@@ -89,7 +90,7 @@ export default function PlayersBrowser({ players, linkable = true, compSlug = "p
           );
           const style = { padding: ".8rem", display: "flex", gap: 10, alignItems: "center" } as const;
           return linkable ? (
-            <Link key={String(p.id)} href={`/player?c=${compSlug}&id=${p.id}`} className="card" style={style}>{inner}</Link>
+            <Link key={String(p.id)} href={`/player/${compSlug}/${safeId(p.id)}`} className="card" style={style}>{inner}</Link>
           ) : (
             <div key={String(p.id)} className="card" style={style}>{inner}</div>
           );

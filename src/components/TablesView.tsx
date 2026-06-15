@@ -5,6 +5,7 @@ import { useCompetition } from "@/components/CompetitionProvider";
 import LeagueSwitch from "@/components/LeagueSwitch";
 import { loadStandings } from "@/lib/history";
 import { getCompetition, seasonLabel } from "@/lib/competitions";
+import { safeId } from "@/lib/ids";
 
 const plBadge = (id: string) => `https://resources.premierleague.com/premierleague25/badges/${id}.svg`;
 
@@ -54,7 +55,7 @@ export default function TablesView({ forceSlug }: { forceSlug?: string }) {
                 <tr key={e.team.id}>
                   <td>{e.overall.position} {move !== 0 && <span className={move > 0 ? "hl-up" : "hl-down"} style={{ fontSize: ".7rem" }}>{move > 0 ? "▲" : "▼"}</span>}</td>
                   <td style={{ fontWeight: 600 }}>
-                    <Link href={`/team?c=${comp.slug}&id=${e.team.id}`} style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+                    <Link href={`/club/${comp.slug}/${safeId(e.team.id)}`} style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={e.team.badge || plBadge(e.team.id)} alt="" width={20} height={20} loading="lazy" onError={(ev) => { (ev.target as HTMLImageElement).style.visibility = "hidden"; }} />
                       {e.team.name}
