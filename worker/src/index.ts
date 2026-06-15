@@ -25,6 +25,7 @@ const GAMES: Record<string, { dir: "high" | "low"; max: number }> = {
   undefeated: { dir: "high", max: 120 }, // the Invincibles Wall — unbeaten seasons (points)
   daily: { dir: "high", max: 120 }, // daily challenge (namespaced daily:<comp>:<date>)
   "higher-or-lower": { dir: "high", max: 5000 },
+  "rating-duel": { dir: "high", max: 5000 },
   "beat-the-clock": { dir: "high", max: 30 },
   "score-predictor": { dir: "high", max: 50 },
 };

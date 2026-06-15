@@ -29,14 +29,18 @@ function shardOf(id) {
 }
 
 const COMPS = [
-  { name: "Premier League", prefix: "" },
-  { name: "La Liga", prefix: "laliga/" },
-  { name: "Serie A", prefix: "seriea/" },
+  { name: "Premier League", short: "PL", prefix: "" },
+  { name: "La Liga", short: "LaLiga", prefix: "laliga/" },
+  { name: "Serie A", short: "Serie A", prefix: "seriea/" },
 ];
 
 const readJson = (p) => (existsSync(p) ? JSON.parse(readFileSync(p, "utf8")) : null);
 
-function buildComp({ name, prefix }) {
+// Cross-league pool for the Rating Duel game — strong, recognisable player-
+// seasons (rating >= 78, apps >= 18), capped per league.
+const duelPool = [];
+
+function buildComp({ name, short, prefix }) {
   const base = join(PUB, prefix);
   const index = readJson(join(base, "history-index.json"));
   if (!index?.seasons?.length) { console.log(`${name}: no history-index, skipped`); return; }
@@ -106,9 +110,23 @@ function buildComp({ name, prefix }) {
     writeFileSync(join(shardDir, `${b}.json`), JSON.stringify(buckets[b] || {}));
   }
   writeFileSync(join(base, "teams-index.json"), JSON.stringify(teams));
+
+  // collect this league's Rating Duel entries (top-rated recognisable seasons).
+  // PL history rosters often lack a photo url — reconstruct it from the id.
+  const plPhoto = (id) => (prefix === "" ? `https://resources.premierleague.com/premierleague25/photos/players/110x140/${id}.png` : null);
+  const entries = [];
+  for (const [id, e] of Object.entries(players))
+    for (const s of e.s) if (s[8] != null && s[8] >= 78 && s[3] >= 18) entries.push({ n: e.n, ph: e.ph || plPhoto(id), r: s[8], c: s[2], l: short, y: s[0] });
+  entries.sort((a, b) => b.r - a.r);
+  duelPool.push(...entries.slice(0, 1000));
+
   const maxKb = Math.max(...Object.values(buckets).map((b) => JSON.stringify(b).length)) / 1024;
-  console.log(`${name}: ${Object.keys(players).length} players (32 shards, max ${maxKb.toFixed(0)} KB), ${Object.keys(teams).length} teams`);
+  console.log(`${name}: ${Object.keys(players).length} players (32 shards, max ${maxKb.toFixed(0)} KB), ${Object.keys(teams).length} teams, ${Math.min(entries.length, 1000)} duel`);
 }
 
 for (const c of COMPS) buildComp(c);
+
+// shuffle-friendly: keep as-is; the game samples randomly
+writeFileSync(join(PUB, "duel.json"), JSON.stringify(duelPool));
+console.log(`duel pool: ${duelPool.length} player-seasons -> public/data/duel.json`);
 console.log("done");

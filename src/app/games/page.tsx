@@ -22,6 +22,7 @@ const GAMES = [
   { slug: "invincibles", title: "Invincibles", emoji: "🏆", blurb: "Spin clubs & eras, draft an XI and simulate a season chasing an unbeaten record.", tag: "Flagship" },
   { slug: "footle", title: "Footle", emoji: "🟩", blurb: "The footballer Wordle. Guess the mystery player in 8 tries — clues on club, nation, position, age and shirt.", tag: "Daily" },
   { slug: "higher-or-lower", title: "Higher or Lower", emoji: "⚖️", blurb: "Did this player score more or fewer goals than the next? Build the longest streak.", tag: "Endless" },
+  { slug: "rating-duel", title: "Rating Duel", emoji: "⚔️", blurb: "Two real player-seasons head to head — pick the higher-rated one. Three leagues, decades deep.", tag: "Endless" },
   { slug: "guess-the-player", title: "Guess the Player", emoji: "🕵️", blurb: "Clues reveal one by one. Solve it early for maximum points.", tag: "Daily" },
   { slug: "career-path", title: "Career Path", emoji: "🧭", blurb: "Identify the player from club, nation, position and shirt number alone.", tag: "Quiz" },
   { slug: "starting-xi", title: "Beat the Clock", emoji: "⏱️", blurb: "Name as many Premier League top scorers as you can in 60 seconds.", tag: "Timed" },

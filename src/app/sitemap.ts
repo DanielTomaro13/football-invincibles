@@ -6,14 +6,14 @@ import { COMPETITIONS } from "@/lib/competitions";
 import { safeId } from "@/lib/ids";
 import { teamIndex, listMatchIds, notablePlayerIds } from "@/lib/server-data";
 
-const GAMES = ["invincibles", "footle", "higher-or-lower", "guess-the-player", "career-path", "starting-xi", "score-predictor"];
+const GAMES = ["invincibles", "footle", "higher-or-lower", "rating-duel", "guess-the-player", "career-path", "starting-xi", "score-predictor"];
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const now = new Date();
   const entry = (path: string, priority: number, changeFrequency: "daily" | "weekly" = "daily") => ({ url: SITE.url + path, lastModified: now, changeFrequency, priority });
 
   const out: MetadataRoute.Sitemap = [
-    "", "/tables", "/stats", "/records", "/players", "/clubs", "/matches", "/history", "/games", "/leaderboard", "/competitions", "/about", "/contact", "/privacy",
+    "", "/tables", "/stats", "/records", "/honours", "/players", "/clubs", "/matches", "/history", "/games", "/leaderboard", "/competitions", "/about", "/contact", "/privacy",
   ].map((p) => entry(p, p === "" ? 1 : 0.8));
 
   out.push(...GAMES.map((g) => entry(`/games/${g}`, 0.7)));

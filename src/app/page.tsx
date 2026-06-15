@@ -28,6 +28,7 @@ const GAMES = [
   { slug: "invincibles", title: "Invincibles", blurb: "Spin a year & club, pick real players, go unbeaten.", emoji: "🏆" },
   { slug: "footle", title: "Footle", blurb: "Wordle for footballers — 8 guesses, new player daily.", emoji: "🟩" },
   { slug: "higher-or-lower", title: "Higher or Lower", blurb: "Which player scored more? Keep the streak alive.", emoji: "⚖️" },
+  { slug: "rating-duel", title: "Rating Duel", blurb: "Pick the higher-rated season. Three leagues, decades deep.", emoji: "⚔️" },
   { slug: "guess-the-player", title: "Guess the Player", blurb: "Reveal clues one at a time. Fewer = more points.", emoji: "🕵️" },
   { slug: "career-path", title: "Career Path", blurb: "Name the player from their shirt, club & nation.", emoji: "🧭" },
   { slug: "starting-xi", title: "Beat the Clock", blurb: "Name as many top scorers as you can in 60s.", emoji: "⏱️" },
