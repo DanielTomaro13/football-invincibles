@@ -40,6 +40,8 @@ jobs:
       - name: Build static export
         run: npm run build
         env:
+          # ~15k static pages — give Node heap headroom so the build can't OOM
+          NODE_OPTIONS: --max-old-space-size=6144
           NEXT_PUBLIC_SITE_URL: https://footballinvincibles.com
           NEXT_PUBLIC_LEADERBOARD_URL: ${{ vars.LEADERBOARD_URL }}
 
