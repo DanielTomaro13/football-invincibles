@@ -40,7 +40,7 @@ const SEASONS = [
   { year: "2016", slug: "laliga-santander-2016" },
   { year: "2015", slug: "laliga-santander-2015" },
   { year: "2014", slug: "laliga-santander-2014" },
-  { year: "2013", slug: "laliga-santander-2013" },
+  // 2013/14 omitted: its players/stats endpoint returns no data.
 ];
 
 const POS = { 1: "Goalkeeper", 2: "Defender", 3: "Midfielder", 4: "Forward" };
@@ -116,18 +116,27 @@ async function fetchFixtures(slug) {
     .sort((a, b) => a.mw - b.mw);
 }
 
+// The players/stats endpoint is properly per-season: it returns the players who
+// actually featured that season, each with that season's team + position + stats.
+// (The /teams/{slug}/squad endpoint is NOT season-aware — it leaks current squads,
+// which is why historical rosters used to repeat — so we build rosters from here.)
 async function allPlayerStats(slug) {
-  const byId = new Map();
-  for (let offset = 0; offset < 1200; offset += 100) {
+  const out = [];
+  for (let offset = 0; offset < 1500; offset += 100) {
     const d = await get(`/api/v1/subscriptions/${slug}/players/stats?limit=100&offset=${offset}`);
     const list = d?.player_stats ?? [];
-    // join key is opta_id — the squad and stats endpoints use different numeric ids
-    for (const p of list) if (p.opta_id) byId.set(p.opta_id, Object.fromEntries((p.stats ?? []).map((s) => [s.name, s.stat])));
+    out.push(...list);
     if (list.length < 100) break;
     await sleep(80);
   }
-  return byId;
+  return out;
 }
+
+const llPhoto = (year, ps) => {
+  const pid = String(ps.opta_id || "").replace(/^p/, "");
+  const topta = ps.team?.opta_id;
+  return pid && topta ? `https://assets.laliga.com/squad/${year}/${topta}/p${pid}/256x278/p${pid}_${topta}_${year}_1_001_000.png` : null;
+};
 
 async function buildSeason({ year, slug }) {
   const st = await get(`/api/v1/subscriptions/${slug}/standing`);
@@ -142,51 +151,49 @@ async function buildSeason({ year, slug }) {
     slug: e.team.slug,
     opta: e.team.opta_id,
   }));
+  const teamIds = new Set(teams.map((t) => t.id));
 
-  const stats = await allPlayerStats(slug);
+  const playerStats = await allPlayerStats(slug);
   const rosters = {};
   const all = [];
+  const seenByTeam = {};
 
-  for (const team of teams) {
-    const sq = await get(`/api/v1/teams/${team.slug}/squad?subscription=${slug}`);
-    const players = [];
-    for (const e of sq?.squads ?? []) {
-      const posName = POS[(e.position || {}).id];
-      if (!posName) continue; // skip coaches/unknown
-      const person = e.person || {};
-      const s = stats.get(e.opta_id) ?? {};
-      const photos = (e.photos || {})["001"] || {};
-      players.push({
-        id: e.opta_id || String(e.id),
-        name: person.name || person.nickname || `${person.firstname ?? ""} ${person.lastname ?? ""}`.trim(),
-        pos: posName,
-        nat: (person.country || {}).id || null,
-        born: person.date_of_birth ? Number(String(person.date_of_birth).slice(0, 4)) : null,
-        shirt: e.shirt_number ?? null,
-        photo: photos["256x278"] || photos["128x139"] || null,
-        g: Math.round(num(s, "goals")),
-        a: Math.round(num(s, "goal_assists")),
-        apps: Math.round(num(s, "appearances")),
-        mins: Math.round(num(s, "time_played")),
-        cs: Math.round(num(s, "clean_sheets")),
-        sot: Math.round(num(s, "shots_on_target_inc_goals")),
-        kp: Math.round(num(s, "key_passes_attempt_assists")),
-        pas: Math.round(num(s, "total_passes")),
-        tk: Math.round(num(s, "tackles_won")),
-        tkl: Math.round(num(s, "total_tackles")),
-        intc: Math.round(num(s, "interceptions")),
-        clr: Math.round(num(s, "total_clearances")),
-        sv: Math.round(num(s, "saves")),
-        gc: Math.round(num(s, "goals_conceded")),
-        yc: Math.round(num(s, "yellow_cards")),
-        _c: composite(posName, s),
-      });
-    }
-    // de-dupe within team by id
-    const seen = new Set();
-    rosters[team.id] = players.filter((p) => !seen.has(p.id) && seen.add(p.id));
-    all.push(...rosters[team.id]);
-    await sleep(60);
+  for (const ps of playerStats) {
+    const posName = POS[(ps.position || {}).id];
+    const tid = String(ps.team?.id ?? "");
+    if (!posName || !teamIds.has(tid)) continue; // skip coaches/unknown + non-top-flight rows
+    const id = ps.opta_id || String(ps.id);
+    (seenByTeam[tid] ??= new Set());
+    if (seenByTeam[tid].has(id)) continue;
+    seenByTeam[tid].add(id);
+    const s = Object.fromEntries((ps.stats ?? []).map((x) => [x.name, x.stat]));
+    const row = {
+      id,
+      name: ps.name || ps.nickname || "",
+      pos: posName,
+      nat: (ps.country || {}).id || null,
+      born: null,
+      shirt: ps.shirt_number ?? null,
+      photo: llPhoto(year, ps),
+      g: Math.round(num(s, "goals")),
+      a: Math.round(num(s, "goal_assists")),
+      apps: Math.round(num(s, "appearances")),
+      mins: Math.round(num(s, "time_played")),
+      cs: Math.round(num(s, "clean_sheets")),
+      sot: Math.round(num(s, "shots_on_target_inc_goals")),
+      kp: Math.round(num(s, "key_passes_attempt_assists")),
+      pas: Math.round(num(s, "total_passes")),
+      tk: Math.round(num(s, "tackles_won")),
+      tkl: Math.round(num(s, "total_tackles")),
+      intc: Math.round(num(s, "interceptions")),
+      clr: Math.round(num(s, "total_clearances")),
+      sv: Math.round(num(s, "saves")),
+      gc: Math.round(num(s, "goals_conceded")),
+      yc: Math.round(num(s, "yellow_cards")),
+      _c: composite(posName, s),
+    };
+    (rosters[tid] ??= []).push(row);
+    all.push(row);
   }
 
   // rate per position (same engine as PL)
@@ -217,6 +224,7 @@ async function buildSeason({ year, slug }) {
 
 async function main() {
   mkdirSync(SEAS_DIR, { recursive: true });
+  mkdirSync(join(OUT, "standings"), { recursive: true });
   const index = { seasons: [] };
   let currentStandings = null, currentStrengths = null;
   for (const s of SEASONS) {
@@ -224,6 +232,7 @@ async function main() {
       const data = await buildSeason(s);
       if (!data) { console.log(`  ${seasonLabel(s.year)}: no data`); continue; }
       writeFileSync(join(SEAS_DIR, `${s.year}.json`), JSON.stringify({ rosters: data.rosters }));
+      writeFileSync(join(OUT, "standings", `${s.year}.json`), JSON.stringify({ standings: data.standings }));
       index.seasons.push({ year: s.year, label: data.label, teams: data.teams });
       const n = Object.values(data.rosters).reduce((a, r) => a + r.length, 0);
       console.log(`  ${data.label}: ${data.teams.length} clubs, ${n} players`);

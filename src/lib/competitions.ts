@@ -55,7 +55,7 @@ export const COMPETITIONS: Competition[] = [
     sdpId: "",
     dataPrefix: "laliga/",
     currentSeason: "2025",
-    seasons: ["2025","2024","2023","2022","2021","2020","2019","2018","2017","2016","2015","2014","2013"],
+    seasons: ["2025","2024","2023","2022","2021","2020","2019","2018","2017","2016","2015","2014"],
     enabled: true,
     accent: "#ff3b50",
     accentInk: "#ffffff",
