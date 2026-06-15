@@ -6,6 +6,8 @@ import { pageMeta, SITE } from "@/lib/seo";
 import { safeId } from "@/lib/ids";
 import { matchFile, listMatchIds, teamIndex, notablePlayerIds } from "@/lib/server-data";
 import JsonLd from "@/components/JsonLd";
+import AdUnit from "@/components/AdUnit";
+import { AD_SLOTS } from "@/lib/ads";
 
 type Params = Promise<{ competition: string; id: string }>;
 const EV_ICON: Record<string, string> = { goal: "⚽", pen: "⚽", og: "⚽", yellow: "🟨", red: "🟥" };
@@ -126,6 +128,8 @@ export default async function MatchPage({ params }: { params: Params }) {
           </div>
         </section>
       )}
+
+      <AdUnit slot={AD_SLOTS.article} />
 
       <section>
         <h2 style={{ fontSize: "1.1rem", fontWeight: 800, margin: "0 0 8px" }}>Lineups</h2>

@@ -16,4 +16,8 @@ export const AD_SLOTS = {
   inline: "5789788385",
   /** "Result" unit — shown below the interactive game (after gameplay, never inside it) */
   game: "6838809461",
+  /** In-article unit on long content pages (player / club / match). Create an
+   *  "In-article" ad unit in AdSense and paste its slot id here to activate;
+   *  while empty it renders nothing. */
+  article: "",
 };

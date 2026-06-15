@@ -6,6 +6,8 @@ import { pageMeta, SITE } from "@/lib/seo";
 import { safeId } from "@/lib/ids";
 import { playerIndex, fullPlayerId, notablePlayerIds, type PlayerEntry } from "@/lib/server-data";
 import JsonLd from "@/components/JsonLd";
+import AdUnit from "@/components/AdUnit";
+import { AD_SLOTS } from "@/lib/ads";
 
 type Params = Promise<{ competition: string; id: string }>;
 const plPhoto = (id: string) => `https://resources.premierleague.com/premierleague25/photos/players/110x140/${id}.png`;
@@ -81,6 +83,8 @@ export default async function PlayerPage({ params }: { params: Params }) {
           </div>
         ))}
       </div>
+
+      <AdUnit slot={AD_SLOTS.article} />
 
       <section>
         <h2 style={{ fontSize: "1.15rem", fontWeight: 800, margin: "0 0 8px" }}>{comp!.name} — season by season</h2>
