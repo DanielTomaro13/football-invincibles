@@ -35,16 +35,16 @@ export default function ClubSquad({ compSlug, teamId, years }: { compSlug: strin
           : squad.length === 0 ? <div style={{ padding: "1rem", color: "var(--muted)" }}>No squad recorded.</div>
           : (
             <ol style={{ listStyle: "none", margin: 0, padding: 0 }}>
-              {squad.map((p) => (
-                <li key={String(p.id)}>
-                  <Link href={`/player/${compSlug}/${safeId(p.id)}`} style={{ display: "flex", alignItems: "center", gap: 10, padding: ".45rem 1rem", borderBottom: "1px solid var(--border)" }}>
-                    <span className="chip" style={{ minWidth: 42, justifyContent: "center", flexShrink: 0 }}>{POS_ABBR[p.pos] || p.pos}</span>
-                    <span style={{ flex: 1, minWidth: 0, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{p.name}</span>
-                    <span style={{ color: "var(--muted)", fontSize: ".8rem", flexShrink: 0 }}>{p.g}G {p.a}A</span>
-                    <strong style={{ color: "var(--accent)", minWidth: 32, textAlign: "right", flexShrink: 0 }}>{p.rating}</strong>
-                  </Link>
-                </li>
-              ))}
+              {squad.map((p) => {
+                const inner = (<>
+                  <span className="chip" style={{ minWidth: 42, justifyContent: "center", flexShrink: 0 }}>{POS_ABBR[p.pos] || p.pos}</span>
+                  <span style={{ flex: 1, minWidth: 0, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{p.name}</span>
+                  <span style={{ color: "var(--muted)", fontSize: ".8rem", flexShrink: 0 }}>{p.g}G {p.a}A</span>
+                  <strong style={{ color: "var(--accent)", minWidth: 32, textAlign: "right", flexShrink: 0 }}>{p.rating}</strong>
+                </>);
+                const st = { display: "flex", alignItems: "center", gap: 10, padding: ".45rem 1rem", borderBottom: "1px solid var(--border)" } as const;
+                return <li key={String(p.id)}>{p.lk ? <Link href={`/player/${compSlug}/${safeId(p.id)}`} style={st}>{inner}</Link> : <div style={st}>{inner}</div>}</li>;
+              })}
             </ol>
           )}
       </div>

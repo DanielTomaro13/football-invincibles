@@ -75,6 +75,25 @@ function buildComp({ name, prefix }) {
   for (const v of Object.values(players)) v.s.sort((a, b) => Number(b[0]) - Number(a[0]));
   for (const v of Object.values(teams)) v.s.sort((a, b) => Number(b[0]) - Number(a[0]));
 
+  // Flag which players get a static page (>=5 career apps — must match
+  // MIN_PLAYER_APPS in lib/server-data.ts) back into the season rosters, so
+  // client lists (squads, players grid, history XI) only link players that
+  // actually have a page and never produce a 404.
+  const MIN_APPS = 5;
+  const linkable = new Set(Object.keys(players).filter((id) => players[id].s.reduce((a, s) => a + s[3], 0) >= MIN_APPS));
+  for (const season of index.seasons) {
+    const f = join(base, "seasons", `${season.year}.json`);
+    const data = readJson(f);
+    if (!data?.rosters) continue;
+    let changed = false;
+    for (const list of Object.values(data.rosters))
+      for (const p of list) {
+        const want = linkable.has(String(p.id)) ? 1 : undefined;
+        if (p.lk !== want) { if (want) p.lk = 1; else delete p.lk; changed = true; }
+      }
+    if (changed) writeFileSync(f, JSON.stringify(data));
+  }
+
   // write the players index as 32 shards; drop the old monolithic file
   const shardDir = join(base, "players-index");
   rmSync(shardDir, { recursive: true, force: true });

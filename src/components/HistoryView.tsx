@@ -129,12 +129,16 @@ export default function HistoryView() {
               <ol style={{ listStyle: "none", margin: 0, padding: 0 }}>
                 {top.map(({ p, team }) => (
                   <li key={String(p.id)}>
-                    <Link href={`/player/${comp.slug}/${safeId(p.id)}`} style={{ display: "flex", alignItems: "center", gap: 10, padding: ".5rem 1rem", borderBottom: "1px solid var(--border)" }}>
-                      <span className="chip" style={{ minWidth: 42, justifyContent: "center", flexShrink: 0 }}>{POS_ABBR[p.pos] || p.pos}</span>
-                      <span style={{ flex: 1, minWidth: 0, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{p.name}</span>
-                      <span style={{ color: "var(--muted)", fontSize: ".82rem", flexShrink: 0 }}>{team}</span>
-                      <strong style={{ color: "var(--accent)", minWidth: 34, textAlign: "right", flexShrink: 0 }}>{p.rating}</strong>
-                    </Link>
+                    {(() => {
+                      const inner = (<>
+                        <span className="chip" style={{ minWidth: 42, justifyContent: "center", flexShrink: 0 }}>{POS_ABBR[p.pos] || p.pos}</span>
+                        <span style={{ flex: 1, minWidth: 0, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{p.name}</span>
+                        <span style={{ color: "var(--muted)", fontSize: ".82rem", flexShrink: 0 }}>{team}</span>
+                        <strong style={{ color: "var(--accent)", minWidth: 34, textAlign: "right", flexShrink: 0 }}>{p.rating}</strong>
+                      </>);
+                      const st = { display: "flex", alignItems: "center", gap: 10, padding: ".5rem 1rem", borderBottom: "1px solid var(--border)" } as const;
+                      return p.lk ? <Link href={`/player/${comp.slug}/${safeId(p.id)}`} style={st}>{inner}</Link> : <div style={st}>{inner}</div>;
+                    })()}
                   </li>
                 ))}
               </ol>

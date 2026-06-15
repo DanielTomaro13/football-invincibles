@@ -73,9 +73,10 @@ export default function StatsView() {
                     <strong style={{ color: "var(--accent)", minWidth: 30, textAlign: "right", flexShrink: 0 }}>{r.v}</strong>
                   </>
                 );
+                const st = { display: "flex", alignItems: "center", gap: 10, padding: "6px 4px", borderRadius: 8 } as const;
                 return (
                   <li key={String(r.p.id)}>
-                    <Link href={`/player/${comp.slug}/${safeId(r.p.id)}`} style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 4px", borderRadius: 8 }}>{inner}</Link>
+                    {r.p.lk ? <Link href={`/player/${comp.slug}/${safeId(r.p.id)}`} style={st}>{inner}</Link> : <span style={st}>{inner}</span>}
                   </li>
                 );
               })}

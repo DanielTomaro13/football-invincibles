@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { COMPETITIONS, getCompetition } from "@/lib/competitions";
 import { pageMeta } from "@/lib/seo";
 import { safeId } from "@/lib/ids";
-import { matchFile, listMatchIds, teamIndex } from "@/lib/server-data";
+import { matchFile, listMatchIds, teamIndex, notablePlayerIds } from "@/lib/server-data";
 
 type Params = Promise<{ competition: string; id: string }>;
 const EV_ICON: Record<string, string> = { goal: "⚽", pen: "⚽", og: "⚽", yellow: "🟨", red: "🟥" };
@@ -44,6 +44,7 @@ export default async function MatchPage({ params }: { params: Params }) {
   const badges = teamIndex(comp!.dataPrefix);
   const badge = (tid: string) => badges[tid]?.b || "";
   const slug = comp!.slug;
+  const hasPage = new Set(notablePlayerIds(comp!.dataPrefix));
 
   const TeamHead = ({ side, align }: { side: any; align: "flex-start" | "flex-end" }) => (
     <Link href={`/club/${slug}/${safeId(side.id)}`} style={{ display: "flex", alignItems: "center", gap: 8, justifyContent: align, fontWeight: 800 }}>
@@ -54,15 +55,15 @@ export default async function MatchPage({ params }: { params: Params }) {
   );
   const PlayerList = ({ players, muted }: { players: any[]; muted?: boolean }) => (
     <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "grid", gap: 1 }}>
-      {players.map((p: any) => (
-        <li key={p.id}>
-          <Link href={`/player/${slug}/${safeId(p.id)}`} style={{ display: "flex", alignItems: "center", gap: 8, padding: "3px 2px", color: muted ? "var(--muted)" : "var(--text)" }}>
-            <span style={{ width: 22, textAlign: "right", color: "var(--muted)", flexShrink: 0 }}>{p.num ?? ""}</span>
-            <span style={{ fontWeight: 600 }}>{p.name}</span>
-            {p.cap && <span title="Captain" style={{ fontSize: ".65rem", color: "var(--gold)" }}>(C)</span>}
-          </Link>
-        </li>
-      ))}
+      {players.map((p: any) => {
+        const st = { display: "flex", alignItems: "center", gap: 8, padding: "3px 2px", color: muted ? "var(--muted)" : "var(--text)" } as const;
+        const inner = (<>
+          <span style={{ width: 22, textAlign: "right", color: "var(--muted)", flexShrink: 0 }}>{p.num ?? ""}</span>
+          <span style={{ fontWeight: 600 }}>{p.name}</span>
+          {p.cap && <span title="Captain" style={{ fontSize: ".65rem", color: "var(--gold)" }}>(C)</span>}
+        </>);
+        return <li key={p.id}>{hasPage.has(String(p.id)) ? <Link href={`/player/${slug}/${safeId(p.id)}`} style={st}>{inner}</Link> : <span style={st}>{inner}</span>}</li>;
+      })}
     </ul>
   );
 

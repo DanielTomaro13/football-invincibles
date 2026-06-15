@@ -14,6 +14,7 @@ export interface HistPlayer {
   apps: number;
   cs: number;
   mins?: number;
+  lk?: number; // 1 if the player has a static profile page (>=5 career apps)
   // attacking
   sh?: number; sot?: number; xg?: number; xa?: number; kp?: number; hw?: number; off?: number;
   // passing
@@ -52,7 +53,7 @@ const strengthsCache = new Map<string, { teamId: string; name: string; strength:
 const standingsCache = new Map<string, any[]>();
 
 // Bump when the dataset/calibration changes so cached files are re-fetched.
-const DATA_VERSION = "5";
+const DATA_VERSION = "6";
 
 // `prefix` is the competition's dataPrefix: "" for the Premier League,
 // "laliga/" for La Liga, etc. — all live under /public/data/<prefix>.

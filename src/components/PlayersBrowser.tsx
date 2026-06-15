@@ -13,6 +13,7 @@ export interface BrowsePlayer {
   a: number;
   apps: number;
   photo: string;
+  lk?: number; // has a static profile page
 }
 
 const POS = ["All", "Goalkeeper", "Defender", "Midfielder", "Forward"];
@@ -89,7 +90,7 @@ export default function PlayersBrowser({ players, linkable = true, compSlug = "p
             </>
           );
           const style = { padding: ".8rem", display: "flex", gap: 10, alignItems: "center" } as const;
-          return linkable ? (
+          return linkable && p.lk ? (
             <Link key={String(p.id)} href={`/player/${compSlug}/${safeId(p.id)}`} className="card" style={style}>{inner}</Link>
           ) : (
             <div key={String(p.id)} className="card" style={style}>{inner}</div>

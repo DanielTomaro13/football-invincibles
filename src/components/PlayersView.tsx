@@ -35,6 +35,7 @@ export default function PlayersView() {
               a: p.a,
               apps: p.apps,
               photo: p.photo || plPhoto(p.id),
+              lk: p.lk,
             });
           }
         }
