@@ -90,6 +90,26 @@ export async function loadStandings(prefix = ""): Promise<any[]> {
   return s;
 }
 
+// Player search index is sharded into 32 buckets (see pipeline/build-search-index.mjs).
+// Keep this hash identical to shardOf() there.
+export function playerShard(id: string): string {
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
+  return (h % 32).toString(16).padStart(2, "0");
+}
+const playerIdxCache = new Map<string, any>();
+export async function loadPlayerIndexEntry(id: string, prefix = ""): Promise<any | null> {
+  const shard = playerShard(id);
+  const key = prefix + shard;
+  let bucket = playerIdxCache.get(key);
+  if (!bucket) {
+    const r = await fetch(`/data/${prefix}players-index/${shard}.json?v=${DATA_VERSION}`, { cache: "force-cache" });
+    bucket = r.ok ? await r.json() : {};
+    playerIdxCache.set(key, bucket);
+  }
+  return bucket[id] ?? null;
+}
+
 // Final table for one past season — /data/<prefix>standings/<year>.json (History archive).
 const seasonStandingsCache = new Map<string, any[]>();
 export async function loadSeasonStandings(year: string, prefix = ""): Promise<any[]> {

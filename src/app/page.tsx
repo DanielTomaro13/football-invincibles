@@ -8,7 +8,7 @@ import HomeTable from "@/components/HomeTable";
 export const metadata: Metadata = pageMeta({
   title: "Football Invincibles — Football Stats, Tables & Mini-Games",
   description:
-    "Live Premier League and LaLiga tables and stats, deep player profiles, and a vault of free football mini-games: build an unbeaten Invincibles XI from years of real players, plus Footle, Higher or Lower, Guess the Player, Career Path, Beat the Clock and Score Predictor. New daily puzzles, global leaderboards, no sign-up.",
+    "Live Premier League, LaLiga and Serie A tables and stats, deep player and club profiles, match centres, and a vault of free football mini-games: build an unbeaten Invincibles XI from decades of real players, plus Footle, Higher or Lower, Guess the Player, Career Path, Beat the Clock and Score Predictor. New daily puzzles, global leaderboards, no sign-up.",
   path: "/",
   keywords: [
     "football games",
@@ -44,8 +44,8 @@ export default function Home() {
           <br /> Master the football <span style={{ color: "var(--accent2)" }}>vault</span>.
         </h1>
         <p style={{ color: "var(--muted)", maxWidth: 640, margin: "0 auto 1.4rem", fontSize: "1.05rem" }}>
-          Spin clubs and seasons, draft real Premier League or LaLiga players, and chase an
-          unbeaten campaign. Plus live tables, player profiles and a vault of daily football puzzles.
+          Spin clubs and seasons, draft real Premier League, LaLiga and Serie A players, and chase an
+          unbeaten campaign. Plus live tables, player &amp; club profiles, match centres and a vault of daily football puzzles.
         </p>
         <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
           <Link href="/games/invincibles" className="btn btn-primary">🏆 Play Invincibles</Link>
@@ -87,7 +87,7 @@ export default function Home() {
               ✅ {comp.name}
             </Link>
           ))}
-          <span className="chip">🔜 Serie A · Bundesliga · Ligue 1 · UCL</span>
+          <span className="chip">🔜 Bundesliga · Ligue 1 · UCL</span>
         </div>
       </section>
     </div>

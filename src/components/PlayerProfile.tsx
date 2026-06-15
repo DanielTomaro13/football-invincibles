@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { getCompetition, seasonLabel } from "@/lib/competitions";
+import { loadPlayerIndexEntry } from "@/lib/history";
 
 const plPhoto = (id: string) => `https://resources.premierleague.com/premierleague25/photos/players/110x140/${id}.png`;
 const POS_ABBR: Record<string, string> = { Goalkeeper: "GK", Defender: "DEF", Midfielder: "MID", Forward: "FWD" };
@@ -22,9 +23,8 @@ export default function PlayerProfile() {
   useEffect(() => {
     if (!comp || !id) { setMissing(true); return; }
     setEntry(null); setMissing(false);
-    fetch(`/data/${comp.dataPrefix}players-index.json`, { cache: "force-cache" })
-      .then((r) => (r.ok ? r.json() : Promise.reject()))
-      .then((idx) => { const e = idx[id]; e ? setEntry(e) : setMissing(true); })
+    loadPlayerIndexEntry(id, comp.dataPrefix)
+      .then((e) => (e ? setEntry(e) : setMissing(true)))
       .catch(() => setMissing(true));
   }, [comp, id]);
 

@@ -5,10 +5,13 @@
   "description": "Football stats, tables and mini-games. Build an Invincible XI. Multi-competition, starting with the Premier League.",
   "scripts": {
     "dev": "next dev",
+    "prebuild": "node pipeline/check-data.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "data": "node pipeline/build-data.mjs"
+    "data": "node pipeline/build-data.mjs",
+    "data:all": "node pipeline/build-all.mjs",
+    "data:check": "node pipeline/check-data.mjs"
   },
   "dependencies": {
     "next": "^15.5.19",

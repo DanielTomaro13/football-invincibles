@@ -11,12 +11,22 @@
  *     { [teamId]: { n:name, sh:short, b:badge,
  *                   s:[[year, position, played, won, drawn, lost, gf, ga, pts]] } }
  */
-import { readFileSync, writeFileSync, existsSync } from "node:fs";
+import { readFileSync, writeFileSync, existsSync, mkdirSync, rmSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PUB = join(__dirname, "..", "public", "data");
+
+// The players index is split into 32 shards so a player page downloads ~1/32 of
+// it (the Serie A index alone is ~3 MB). The client uses the SAME hash to pick a
+// shard — keep playerShard() in lib/history.ts identical to this.
+const SHARDS = 32;
+function shardOf(id) {
+  let h = 0; const s = String(id);
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+  return (h % SHARDS).toString(16).padStart(2, "0");
+}
 
 const COMPS = [
   { name: "Premier League", prefix: "" },
@@ -65,10 +75,20 @@ function buildComp({ name, prefix }) {
   for (const v of Object.values(players)) v.s.sort((a, b) => Number(b[0]) - Number(a[0]));
   for (const v of Object.values(teams)) v.s.sort((a, b) => Number(b[0]) - Number(a[0]));
 
-  writeFileSync(join(base, "players-index.json"), JSON.stringify(players));
+  // write the players index as 32 shards; drop the old monolithic file
+  const shardDir = join(base, "players-index");
+  rmSync(shardDir, { recursive: true, force: true });
+  mkdirSync(shardDir, { recursive: true });
+  rmSync(join(base, "players-index.json"), { force: true });
+  const buckets = {};
+  for (const [id, rec] of Object.entries(players)) (buckets[shardOf(id)] ??= {})[id] = rec;
+  for (let i = 0; i < SHARDS; i++) {
+    const b = i.toString(16).padStart(2, "0");
+    writeFileSync(join(shardDir, `${b}.json`), JSON.stringify(buckets[b] || {}));
+  }
   writeFileSync(join(base, "teams-index.json"), JSON.stringify(teams));
-  const pBytes = (JSON.stringify(players).length / 1024).toFixed(0);
-  console.log(`${name}: ${Object.keys(players).length} players, ${Object.keys(teams).length} teams (${pBytes} KB player index)`);
+  const maxKb = Math.max(...Object.values(buckets).map((b) => JSON.stringify(b).length)) / 1024;
+  console.log(`${name}: ${Object.keys(players).length} players (32 shards, max ${maxKb.toFixed(0)} KB), ${Object.keys(teams).length} teams`);
 }
 
 for (const c of COMPS) buildComp(c);

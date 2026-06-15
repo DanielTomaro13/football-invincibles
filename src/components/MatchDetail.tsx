@@ -20,6 +20,7 @@ export default function MatchDetail() {
   const comp = getCompetition(cSlug);
   const [m, setM] = useState<Match | null>(null);
   const [missing, setMissing] = useState(false);
+  const [badges, setBadges] = useState<Map<string, string>>(new Map());
 
   useEffect(() => {
     if (!comp || !id) { setMissing(true); return; }
@@ -30,6 +31,11 @@ export default function MatchDetail() {
       .then((r) => (r.ok ? r.json() : Promise.reject()))
       .then(setM)
       .catch(() => setMissing(true));
+    // club crests for the scoreline (all leagues)
+    fetch(`/data/${comp.dataPrefix}teams-index.json`, { cache: "force-cache" })
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then((idx) => { const map = new Map<string, string>(); for (const [tid, v] of Object.entries(idx as Record<string, { b?: string }>)) if (v.b) map.set(tid, v.b); setBadges(map); })
+      .catch(() => {});
   }, [comp, id]);
 
   if (missing || !comp) return (
@@ -40,7 +46,7 @@ export default function MatchDetail() {
   );
   if (!m) return <p style={{ color: "var(--muted)" }}>Loading…</p>;
 
-  const badge = (tid: string) => comp.slug === "premier-league" ? teamBadge(tid) : "";
+  const badge = (tid: string) => badges.get(tid) || (comp.slug === "premier-league" ? teamBadge(tid) : "");
 
   return (
     <div style={{ display: "grid", gap: "1.5rem" }}>

@@ -139,7 +139,10 @@ async function buildSerieA() {
     let stats = [];
     if (ts?.stats) {
       const by = new Map(ts.stats.map((s) => [s.statsId, s]));
-      stats = SA_STATS.map(([k, label, pct]) => { const s = by.get(k); return s ? { label, home: s.statsValueHome ?? 0, away: s.statsValueAway ?? 0, pct } : null; }).filter(Boolean);
+      stats = SA_STATS.map(([k, label, pct]) => { const s = by.get(k); return s ? { label, home: s.statsValueHome ?? 0, away: s.statsValueAway ?? 0, pct } : null; })
+        .filter(Boolean)
+        // drop possession when it's the API's unpopulated 50/50 default
+        .filter((s) => !(s.label.startsWith("Possession") && s.home === 50 && s.away === 50));
     }
     writeMatch("seriea/", fx, saSide(lu.home), saSide(lu.away), [], stats);
     wrote++; if (wrote % 40 === 0) console.log(`  Serie A …${wrote}`);
