@@ -2,6 +2,8 @@
 
 > **Status, September 2026:** GitHub Actions are currently paused on this repo, so automated data refreshes and deploys are not running. The data and any live site reflect the last build.
 
+[![Screenshot of the live site](.github/screenshot.png)](https://footballinvincibles.com/)
+
 > Football stats, tables & addictive mini-games. Build your Invincible XI.
 > Live at **footballinvincibles.com** (soon). Multi-competition — starting with the Premier League.
 
