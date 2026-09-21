@@ -1,5 +1,7 @@
 # ⚽ Football Invincibles
 
+> **Status, September 2026:** GitHub Actions are currently paused on this repo, so automated data refreshes and deploys are not running. The data and any live site reflect the last build.
+
 > Football stats, tables & addictive mini-games. Build your Invincible XI.
 > Live at **footballinvincibles.com** (soon). Multi-competition — starting with the Premier League.
 
