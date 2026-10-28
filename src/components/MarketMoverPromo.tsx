@@ -74,7 +74,11 @@ export default function MarketMoverPromo() {
           width: min(560px, 92vw);
           display: grid;
           grid-template-columns: auto minmax(0, 1fr) auto;
-          gap: 16px;
+          grid-template-areas:
+            "mark copy dismiss"
+            "mark cta dismiss";
+          column-gap: 16px;
+          row-gap: 12px;
           align-items: start;
           padding: 22px 16px 22px 22px;
           background: var(--panel, #161d2e);
@@ -84,6 +88,7 @@ export default function MarketMoverPromo() {
           box-shadow: 0 22px 56px rgba(0, 0, 0, 0.5);
         }
         .mm-promo-mark {
+          grid-area: mark;
           width: 72px;
           height: 72px;
           max-width: none;
@@ -91,8 +96,9 @@ export default function MarketMoverPromo() {
           display: block;
         }
         .mm-promo-copy {
+          grid-area: copy;
           display: grid;
-          gap: 12px;
+          gap: 8px;
           min-width: 0;
           padding-top: 2px;
         }
@@ -110,7 +116,9 @@ export default function MarketMoverPromo() {
           color: var(--muted, #93a0bd);
         }
         .mm-promo-cta {
+          grid-area: cta;
           justify-self: start;
+          align-self: start;
           min-height: 48px;
           min-width: 48px;
           padding: 0.75rem 1.35rem;
@@ -118,6 +126,7 @@ export default function MarketMoverPromo() {
           border-radius: 12px;
         }
         .mm-promo-dismiss {
+          grid-area: dismiss;
           border: 0;
           background: transparent;
           color: var(--muted, #93a0bd);
@@ -134,25 +143,35 @@ export default function MarketMoverPromo() {
           color: var(--text, #e8edf7);
           background: var(--panel-2, #1d2740);
         }
-        /* Phones: nearly the full width, with room for the home indicator and notch. */
+        /* Phones: nearly the full width, with room for the home indicator and notch.
+           The CTA sits on its own row so the label stays one line at a 48px tap height. */
         @media (max-width: 700px) {
           .mm-promo {
             left: max(8px, env(safe-area-inset-left));
             right: max(8px, env(safe-area-inset-right));
             width: auto;
-            gap: 12px;
-            padding: 18px 10px 18px 16px;
+            gap: 12px 12px;
+            padding: 18px 10px 16px 16px;
+            grid-template-areas:
+              "mark copy dismiss"
+              "cta cta cta";
           }
           .mm-promo-mark { width: 60px; height: 60px; }
+          .mm-promo-copy { gap: 6px; align-self: center; }
           .mm-promo-title { font-size: 1.5rem; }
           .mm-promo-body { font-size: 1.125rem; }
           .mm-promo-cta {
+            grid-area: cta;
             justify-self: stretch;
             width: 100%;
+            height: 48px;
             min-height: 48px;
-            font-size: 1.125rem;
+            padding: 0 1.1rem;
+            font-size: 1.0625rem;
+            white-space: nowrap;
           }
           .mm-promo-dismiss {
+            grid-area: dismiss;
             width: 48px;
             height: 48px;
             margin: -8px -2px 0 0;
@@ -168,23 +187,33 @@ export default function MarketMoverPromo() {
               bottom: calc(12px + env(safe-area-inset-bottom));
               width: auto;
               max-width: none;
-              gap: 14px;
-              padding: 20px 12px 20px 18px;
+              gap: 14px 14px;
+              padding: 20px 12px 18px 18px;
+              grid-template-areas:
+                "mark copy dismiss"
+                "cta cta cta";
             }
             .mm-promo-mark { width: 64px; height: 64px; }
+            .mm-promo-copy { gap: 8px; align-self: center; }
             .mm-promo-title { font-size: 1.6rem; }
             .mm-promo-body { font-size: 1.15rem; line-height: 1.4; }
             .mm-promo-cta {
+              grid-area: cta;
               justify-self: stretch;
               width: 100%;
+              height: 48px;
               min-height: 48px;
+              padding: 0 1.25rem;
               font-size: 1.125rem;
+              white-space: nowrap;
             }
             .mm-promo-dismiss {
+              grid-area: dismiss;
               width: 48px;
               height: 48px;
               min-width: 48px;
               min-height: 48px;
+              margin: -6px 0 0 0;
               font-size: 1.85rem;
             }
           }
@@ -204,16 +233,16 @@ export default function MarketMoverPromo() {
         <p className="mm-promo-body">
           Live prices and model markets in one place. More markets coming.
         </p>
-        <a
-          href={HREF}
-          target="_blank"
-          rel="noopener noreferrer"
-          onClick={dismiss}
-          className="btn btn-primary mm-promo-cta"
-        >
-          Open MarketMover
-        </a>
       </div>
+      <a
+        href={HREF}
+        target="_blank"
+        rel="noopener noreferrer"
+        onClick={dismiss}
+        className="btn btn-primary mm-promo-cta"
+      >
+        Open MarketMover
+      </a>
       <button
         type="button"
         onClick={dismiss}
