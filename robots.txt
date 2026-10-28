@@ -1,0 +1,5 @@
+User-Agent: *
+Allow: /
+
+Host: https://footballinvincibles.com
+Sitemap: https://footballinvincibles.com/sitemap.xml
