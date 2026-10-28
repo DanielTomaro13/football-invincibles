@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Script from "next/script";
 import "./globals.css";
 import SisterSites from "@/components/SisterSites";
+import MarketMoverPromo from "@/components/MarketMoverPromo";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
 import CompetitionProvider from "@/components/CompetitionProvider";
@@ -106,6 +107,7 @@ export default function RootLayout({
       <body>
         <JsonLd data={orgLd} />
         <SisterSites active="football" />
+        <MarketMoverPromo />
         <CompetitionProvider>
           <SiteHeader />
           <main className="container-x" style={{ paddingTop: "1.5rem", minHeight: "70dvh" }}>
